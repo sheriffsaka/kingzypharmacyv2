@@ -45,7 +45,7 @@ export interface ChatMessage {
 // App Navigation View Type
 export type View = 
   | { name: 'products', categoryId?: number | null }
-  | { name: 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' }
+  | { name: 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number };
 
@@ -88,6 +88,10 @@ export interface Order {
     discount_applied: number;
     delivery_address: DeliveryAddress;
     customer_details: CustomerDetails;
+    // Joined data
+    payments?: Payment[];
+    order_items?: OrderItem[];
+    invoices?: Invoice[];
 }
 
 export interface OrderItem {
@@ -96,4 +100,82 @@ export interface OrderItem {
     product_id: number;
     quantity: number;
     unit_price: number;
+    // Joined data
+    products?: Pick<Product, 'name' | 'dosage' | 'image_url'>
+}
+
+// Payment Types
+export type PaymentMethod = 'online' | 'pay_on_delivery';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'pay_on_delivery' | 'awaiting_confirmation';
+
+export interface Payment {
+  id: number;
+  order_id: number;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  reference?: string;
+  amount: number;
+  verified_at?: string;
+  created_at: string;
+  receipts?: Receipt[];
+}
+
+// Invoice & Receipt Types
+export type InvoiceStatus = 'draft' | 'locked';
+
+export interface InvoiceItem {
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+}
+
+export interface InvoiceData {
+    buyerDetails: {
+        deliveryAddress: DeliveryAddress,
+        customerDetails: CustomerDetails
+    },
+    items: InvoiceItem[];
+    pricing: {
+        subtotal: number;
+        discount_applied: number;
+        delivery_fee: number;
+        total_price: number;
+    }
+}
+
+export interface Invoice {
+    id: number;
+    invoice_number: string;
+    order_id: number;
+    user_id: string;
+    status: InvoiceStatus;
+    invoice_data: InvoiceData;
+    pdf_storage_path?: string;
+    created_at: string;
+}
+
+export interface ReceiptData {
+    buyerDetails: {
+        deliveryAddress: DeliveryAddress;
+        customerDetails: CustomerDetails;
+    };
+    paymentDetails: {
+        payment_method: PaymentMethod;
+        amount_paid: number;
+        verified_at: string;
+    };
+    relatedInvoiceNumber: string;
+}
+
+
+export interface Receipt {
+    id: number;
+    receipt_number: string;
+    payment_id: number;
+    order_id: number;
+    user_id: string;
+    receipt_data: ReceiptData;
+    pdf_storage_path?: string;
+    created_at: string;
 }

@@ -6,6 +6,7 @@ import ProductListPage from './components/HomePage';
 import ProductDetailPage from './components/ProductDetailPage';
 import CartPage from './components/CartPage';
 import OrderSuccessPage from './components/OrderSuccessPage';
+import OrderHistoryPage from './components/OrderHistoryPage';
 import Chatbot from './components/Chatbot';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/AdminDashboard';
@@ -117,7 +118,10 @@ const App: React.FC = () => {
         return <OrderSuccessPage
                   orderId={currentView.orderId}
                   onGoToProducts={() => handleNavigation({ name: 'products' })}
+                  onViewOrders={() => handleNavigation({ name: 'orders' })}
                 />
+      case 'orders':
+          return <OrderHistoryPage session={session} onProductSelect={(productId) => handleNavigation({ name: 'productDetail', productId })}/>;
       case 'chat':
          return <div className="container mx-auto px-4 py-8"><Chatbot /></div>;
       case 'auth':

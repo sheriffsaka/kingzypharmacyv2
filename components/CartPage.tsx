@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useCart } from '../contexts/CartContext';
-import { Profile, DeliveryAddress } from '../types';
+import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase/client';
 import { ArrowLeftIcon, TrashIcon } from './Icons';
 
@@ -17,6 +18,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
     fullName: '', phone: '', street: '', city: '', state: '', zip: ''
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
   const [acknowledge, setAcknowledge] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +41,14 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
   
   const handleSubmitOrder = async () => {
       if (!isFormValid() || !session?.user) {
-          setError("Please fill in all delivery details, acknowledge the terms, and ensure your cart is not empty.");
+          setError("Please fill in all delivery details, select a payment method, acknowledge the terms, and ensure your cart is not empty.");
           return;
       }
       setIsLoading(true);
       setError(null);
       
       try {
-          // 1. Create the order record
+          // 1. Create the order record with 'pending' status
           const { data: orderData, error: orderError } = await supabase
               .from('orders')
               .insert({
@@ -55,7 +57,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                   discount_applied: loyaltyDiscountValue,
                   delivery_address: deliveryAddress,
                   customer_details: { email: session.user.email, userId: session.user.id },
-                  status: 'pending'
+                  status: 'pending' // All orders start as pending until payment is processed
               })
               .select()
               .single();
@@ -63,7 +65,24 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
           if (orderError) throw orderError;
           const orderId = orderData.id;
 
-          // 2. Create the order items records
+          // 2. Create the corresponding payment record
+          const paymentStatus: PaymentStatus = paymentMethod === 'pay_on_delivery' ? 'pay_on_delivery' : 'pending';
+          const { error: paymentError } = await supabase
+            .from('payments')
+            .insert({
+                order_id: orderId,
+                amount: total,
+                payment_method: paymentMethod,
+                payment_status: paymentStatus
+            });
+
+          if (paymentError) {
+              // If payment record fails, roll back the order creation
+              await supabase.from('orders').delete().eq('id', orderId);
+              throw paymentError;
+          }
+
+          // 3. Create the order items records
           const orderItems = cart.map(item => ({
               order_id: orderId,
               product_id: item.product.id,
@@ -74,12 +93,26 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
           const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
           if (itemsError) {
-              // Attempt to roll back order creation if items fail
+              // Attempt to roll back order and payment creation if items fail
+              await supabase.from('payments').delete().eq('order_id', orderId);
               await supabase.from('orders').delete().eq('id', orderId);
               throw itemsError;
           }
+          
+          // 4. If 'Pay on Delivery', update order status to 'processing'
+          if (paymentMethod === 'pay_on_delivery') {
+              const { error: updateError } = await supabase
+                .from('orders')
+                .update({ status: 'processing' })
+                .eq('id', orderId);
+              
+              if (updateError) {
+                  // Log error but proceed, as the order is still valid
+                  console.error('Failed to update order status for Pay on Delivery:', updateError);
+              }
+          }
 
-          // 3. Success
+          // 5. Success
           clearCart();
           onPlaceOrder(orderId);
 
@@ -161,6 +194,26 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                      {loyaltyDiscountValue > 0 && <div className="flex justify-between text-green-600"><span>Loyalty Discount</span><span>-₦{loyaltyDiscountValue.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>}
                     <div className="flex justify-between"><span>Delivery Fee</span><span>₦500.00</span></div>
                     <div className="flex justify-between text-xl font-bold text-brand-dark pt-2 border-t"><span>Total</span><span>₦{total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                </div>
+
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">Payment Method</h3>
+                    <div className="space-y-3">
+                        <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
+                            <input type="radio" name="paymentMethod" value="pay_on_delivery" checked={paymentMethod === 'pay_on_delivery'} onChange={() => setPaymentMethod('pay_on_delivery')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
+                            <div className="ml-3">
+                                <span className="font-semibold text-gray-800">Pay on Delivery</span>
+                                <p className="text-sm text-gray-500">Pay with cash or card when your order arrives.</p>
+                            </div>
+                        </label>
+                        <label className="flex items-center p-4 border rounded-md cursor-not-allowed bg-gray-100 opacity-60">
+                            <input type="radio" name="paymentMethod" value="online" checked={paymentMethod === 'online'} className="h-4 w-4" disabled/>
+                            <div className="ml-3">
+                                <span className="font-semibold text-gray-500">Online Payment</span>
+                                <p className="text-sm text-gray-400">Card, Bank Transfer (Coming Soon)</p>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
                 <div className="mt-6">

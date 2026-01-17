@@ -171,8 +171,216 @@ CREATE POLICY "Users can manage their own order items" ON public.order_items FOR
 CREATE POLICY "Admins can manage all order items" ON public.order_items FOR ALL USING (public.is_admin());
 
 
+-- =================================================================
+-- PAYMENT SCHEMA
+-- =================================================================
 
--- 14. Seed Data
+-- 14. Create Payment Enums
+DROP TYPE IF EXISTS public.payment_method CASCADE;
+DROP TYPE IF EXISTS public.payment_status CASCADE;
+CREATE TYPE public.payment_method AS ENUM ('online', 'pay_on_delivery');
+CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'pay_on_delivery', 'awaiting_confirmation');
+
+
+-- 15. Create Payments Table
+DROP TABLE IF EXISTS public.payments;
+CREATE TABLE public.payments (
+    id bigserial PRIMARY KEY,
+    order_id bigint NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    payment_method public.payment_method NOT NULL,
+    payment_status public.payment_status NOT NULL DEFAULT 'pending',
+    reference text, -- For payment gateway transaction IDs
+    amount numeric(10, 2) NOT NULL,
+    verified_at timestamp with time zone,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+
+-- 16. Enable RLS and define policies for payments table
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own payments" ON public.payments FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.orders
+        WHERE orders.id = payments.order_id AND orders.user_id = auth.uid()
+    )
+);
+CREATE POLICY "Admins can manage all payments" ON public.payments FOR ALL USING (public.is_admin());
+
+-- =================================================================
+-- INVOICE & RECEIPT SCHEMA
+-- =================================================================
+
+-- 17. Create Invoice Status Enum
+DROP TYPE IF EXISTS public.invoice_status CASCADE;
+CREATE TYPE public.invoice_status AS ENUM ('draft', 'locked');
+
+-- 18. Create Invoices Table
+DROP TABLE IF EXISTS public.invoices;
+CREATE TABLE public.invoices (
+    id bigserial PRIMARY KEY,
+    invoice_number text NOT NULL UNIQUE,
+    order_id bigint NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE UNIQUE,
+    user_id uuid NOT NULL REFERENCES auth.users(id),
+    status public.invoice_status NOT NULL DEFAULT 'draft',
+    invoice_data jsonb NOT NULL,
+    pdf_storage_path text,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- 19. Enable RLS and define policies for invoices table
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can access their own invoices" ON public.invoices FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Admins can manage all invoices" ON public.invoices FOR ALL USING (public.is_admin());
+
+
+-- 20. Create Receipts Table
+DROP TABLE IF EXISTS public.receipts;
+CREATE TABLE public.receipts (
+    id bigserial PRIMARY KEY,
+    receipt_number text NOT NULL UNIQUE,
+    payment_id bigint NOT NULL REFERENCES public.payments(id) ON DELETE CASCADE UNIQUE,
+    order_id bigint NOT NULL REFERENCES public.orders(id),
+    user_id uuid NOT NULL REFERENCES auth.users(id),
+    receipt_data jsonb NOT NULL,
+    pdf_storage_path text,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- 21. Enable RLS and define policies for receipts table
+ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can access their own receipts" ON public.receipts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Admins can manage all receipts" ON public.receipts FOR ALL USING (public.is_admin());
+
+
+-- =================================================================
+-- DATABASE TRIGGERS FOR AUTOMATION
+-- =================================================================
+
+-- 22. Trigger Function to create Proforma Invoice on new order
+CREATE OR REPLACE FUNCTION public.create_proforma_invoice()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    items_json jsonb;
+    invoice_data_json jsonb;
+    delivery_fee numeric := 500; -- Assuming fixed delivery fee
+BEGIN
+    -- Aggregate order items into a JSON array
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'product_name', p.name,
+            'quantity', oi.quantity,
+            'unit_price', oi.unit_price,
+            'line_total', oi.quantity * oi.unit_price
+        )
+    )
+    INTO items_json
+    FROM public.order_items oi
+    JOIN public.products p ON oi.product_id = p.id
+    WHERE oi.order_id = NEW.id;
+
+    -- Construct the final invoice data JSON
+    invoice_data_json := jsonb_build_object(
+        'buyerDetails', jsonb_build_object(
+            'deliveryAddress', NEW.delivery_address,
+            'customerDetails', NEW.customer_details
+        ),
+        'items', items_json,
+        'pricing', jsonb_build_object(
+            'subtotal', NEW.total_price - delivery_fee + NEW.discount_applied,
+            'discount_applied', NEW.discount_applied,
+            'delivery_fee', delivery_fee,
+            'total_price', NEW.total_price
+        )
+    );
+
+    -- Insert the new invoice
+    INSERT INTO public.invoices (invoice_number, order_id, user_id, status, invoice_data)
+    VALUES (
+        'INV-' || to_char(NEW.created_at, 'YYYYMMDD') || '-' || NEW.id,
+        NEW.id,
+        NEW.user_id,
+        'draft',
+        invoice_data_json
+    );
+
+    RETURN NEW;
+END;
+$$;
+
+-- 23. Attach the invoice trigger to the orders table
+DROP TRIGGER IF EXISTS on_order_created_create_invoice ON public.orders;
+CREATE TRIGGER on_order_created_create_invoice
+    AFTER INSERT ON public.orders
+    FOR EACH ROW EXECUTE FUNCTION public.create_proforma_invoice();
+
+
+-- 24. Trigger function to create Receipt and Lock Invoice on successful payment
+CREATE OR REPLACE FUNCTION public.create_payment_receipt_and_lock_invoice()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    order_details record;
+    invoice_details record;
+    receipt_data_json jsonb;
+BEGIN
+    -- Only run for 'paid' status
+    IF NEW.payment_status = 'paid' THEN
+        -- Get corresponding order and invoice details
+        SELECT * INTO order_details FROM public.orders WHERE id = NEW.order_id;
+        SELECT * INTO invoice_details FROM public.invoices WHERE order_id = NEW.order_id;
+
+        -- Construct the receipt data JSON
+        receipt_data_json := jsonb_build_object(
+            'buyerDetails', jsonb_build_object(
+                'deliveryAddress', order_details.delivery_address,
+                'customerDetails', order_details.customer_details
+            ),
+            'paymentDetails', jsonb_build_object(
+                'payment_method', NEW.payment_method,
+                'amount_paid', NEW.amount,
+                'verified_at', NEW.verified_at
+            ),
+            'relatedInvoiceNumber', invoice_details.invoice_number
+        );
+        
+        -- Insert the new receipt
+        INSERT INTO public.receipts (receipt_number, payment_id, order_id, user_id, receipt_data)
+        VALUES (
+            'RCPT-' || to_char(NEW.verified_at, 'YYYYMMDD') || '-' || NEW.id,
+            NEW.id,
+            NEW.order_id,
+            order_details.user_id,
+            receipt_data_json
+        );
+
+        -- Lock the invoice
+        UPDATE public.invoices SET status = 'locked' WHERE id = invoice_details.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- 25. Attach the receipt trigger to the payments table
+DROP TRIGGER IF EXISTS on_payment_paid_create_receipt ON public.payments;
+CREATE TRIGGER on_payment_paid_create_receipt
+    AFTER UPDATE OF payment_status ON public.payments
+    FOR EACH ROW
+    WHEN (OLD.payment_status IS DISTINCT FROM NEW.payment_status AND NEW.payment_status = 'paid')
+    EXECUTE FUNCTION public.create_payment_receipt_and_lock_invoice();
+
+
+-- =================================================================
+-- SEED DATA (UNCHANGED)
+-- =================================================================
+-- 17. Seed Data
 -- Seed Categories
 INSERT INTO public.categories (name, description) VALUES
 ('Pain Relief', 'Medications to alleviate various types of pain.'),
