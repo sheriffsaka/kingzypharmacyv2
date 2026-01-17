@@ -40,8 +40,19 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
                     .single();
                 
                 if (productError) throw new Error(`Product fetch failed: ${productError.message}`);
-                setProduct(productData as Product);
-                setQuantity(isWholesale ? productData.min_order_quantity : 1);
+                // FIX: The Supabase query returns 'categories' as an array, but the 'Product' type expects an object.
+                // We transform the data to match the expected type by taking the first element of the 'categories' array.
+                // Also handles the case where productData is null to prevent crashes.
+                if (productData) {
+                    const transformedProduct = {
+                        ...productData,
+                        categories: Array.isArray(productData.categories) ? productData.categories[0] : productData.categories
+                    };
+                    setProduct(transformedProduct as Product);
+                    setQuantity(isWholesale ? transformedProduct.min_order_quantity : 1);
+                } else {
+                    setProduct(null);
+                }
 
                 const { data: relatedIdsData, error: relatedIdsError } = await supabase
                     .from('related_products')
@@ -58,7 +69,13 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
                         .in('id', relatedIds);
                     
                     if (relatedProductsError) throw new Error(`Related products fetch failed: ${relatedProductsError.message}`);
-                    setRelatedProducts(relatedProductsData as Product[]);
+                    // FIX: The Supabase query returns 'categories' as an array, but the 'Product' type expects an object.
+                    // We transform the data to match the expected type by taking the first element of the 'categories' array.
+                    const transformedRelatedProducts = (relatedProductsData || []).map((p: any) => ({
+                        ...p,
+                        categories: Array.isArray(p.categories) ? p.categories[0] : p.categories
+                    }));
+                    setRelatedProducts(transformedRelatedProducts as Product[]);
                 }
             } catch (err: any) {
                 setError(err.message);
