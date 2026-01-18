@@ -18,11 +18,11 @@ const DownloadApp: React.FC = () => {
                             </a>
                          </div>
                     </div>
-                     <div className="md:w-1/3 flex justify-center mt-8 md:mt-0">
+                     <div className="md:w-1/2 flex justify-center mt-8 md:mt-0">
                         <img 
-                            src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768715113/kingzyapp_final-removebg_gwywcy.png"
+                            src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768717382/kingzyapp2_dcum4m.png"
                             alt="Kingzy Pharmaceuticals Mobile App"
-                            className="w-80 h-auto transform transition-transform duration-500 hover:scale-105 hover:-rotate-2"
+                            className="w-full h-auto transform transition-transform duration-500 hover:scale-105 hover:-rotate-2"
                         />
                     </div>
                 </div>
