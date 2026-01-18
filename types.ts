@@ -45,7 +45,7 @@ export interface ChatMessage {
 // App Navigation View Type
 export type View = 
   | { name: 'products', categoryId?: number | null }
-  | { name: 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' }
+  | { name: 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'wholesale_public' | 'contact' | 'faq' }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number };
 

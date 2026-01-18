@@ -18,6 +18,9 @@ import HealthInsights from './components/HealthInsights';
 import PlusMembership from './components/PlusMembership';
 import OffersPage from './components/OffersPage';
 import AboutPage from './components/AboutPage';
+import WholesalePublicPage from './components/WholesalePublicPage';
+import ContactPage from './components/ContactPage';
+import FAQPage from './components/FAQPage';
 import { View, Profile, Category } from './types';
 import { supabase } from './lib/supabase/client';
 import { useCart } from './contexts/CartContext';
@@ -130,6 +133,8 @@ const App: React.FC = () => {
         return profile?.role === 'admin' ? <AdminDashboard /> : <p>Access Denied</p>;
       case 'wholesale':
         return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} /> : <p>Access Denied</p>;
+      case 'wholesale_public':
+        return <WholesalePublicPage onNavigate={handleNavigation} />;
       case 'labTests':
         return <LabTests />;
       case 'healthInsights':
@@ -140,6 +145,10 @@ const App: React.FC = () => {
         return <OffersPage />;
       case 'about':
         return <AboutPage />;
+      case 'contact':
+        return <ContactPage />;
+      case 'faq':
+        return <FAQPage />;
       default:
         return <ProductListPage 
                  profile={profile} 
@@ -163,7 +172,7 @@ const App: React.FC = () => {
       <main className="flex-grow">
         {renderContent()}
       </main>
-      <Footer />
+      <Footer onNavigate={handleNavigation} categories={categories} />
       <ScrollToTopButton />
     </div>
   );

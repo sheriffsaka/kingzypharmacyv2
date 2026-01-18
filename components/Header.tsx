@@ -99,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
       <div className="bg-brand-dark hidden md:block">
           <nav className="container mx-auto px-4 flex justify-between items-center">
               <div className="flex items-center space-x-6">
-                  <button onClick={() => handleDesktopNav({ name: 'products' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Medicine</button>
+                  <button onClick={() => handleDesktopNav({ name: 'wholesale_public' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">B2B / Wholesale</button>
                   <div className="relative" onMouseEnter={() => setDropdownOpen(true)} onMouseLeave={() => setDropdownOpen(false)}>
                       <button className="py-3 text-gray-200 hover:text-white font-medium transition-colors flex items-center">
                           Healthcare Products
@@ -107,6 +107,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                       </button>
                       {isDropdownOpen && (
                           <div className="absolute top-full left-0 mt-0 w-56 bg-white rounded-md shadow-lg z-50 py-1">
+                              <a onClick={() => handleDesktopNav({ name: 'products', categoryId: null })} className="block px-4 py-2 text-sm font-bold text-brand-primary hover:bg-gray-100 cursor-pointer">All Products</a>
                               {categories.map(cat => (
                                 <a key={cat.id} onClick={() => handleDesktopNav({ name: 'products', categoryId: cat.id })} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">{cat.name}</a>
                               ))}
@@ -122,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                   <button onClick={() => handleDesktopNav({ name: 'plusMembership'})} className="py-3 text-yellow-300 hover:text-yellow-200 font-bold transition-colors">PLUS</button>
                   <button onClick={() => handleDesktopNav({ name: 'offers' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Offers</button>
                   {profile?.role === 'admin' && <button onClick={() => handleDesktopNav({ name: 'admin' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Admin</button>}
-                  {profile?.role === 'wholesale_buyer' && <button onClick={() => handleDesktopNav({ name: 'wholesale' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Wholesale</button>}
+                  {profile?.role === 'wholesale_buyer' && <button onClick={() => handleDesktopNav({ name: 'wholesale' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Wholesale Dashboard</button>}
               </div>
           </nav>
       </div>
@@ -130,9 +131,10 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-brand-dark shadow-lg">
             <nav className="flex flex-col p-4 space-y-2">
-                <button onClick={() => handleMobileNav({ name: 'products' })} className={navButtonClasses}>Medicine</button>
+                <button onClick={() => handleMobileNav({ name: 'wholesale_public' })} className={navButtonClasses}>B2B / Wholesale</button>
                 <div className="text-white font-semibold px-4 py-2">Healthcare Products</div>
                 <div className="flex flex-col pl-4">
+                  <button onClick={() => handleMobileNav({ name: 'products', categoryId: null })} className={`${navButtonClasses} font-bold text-brand-secondary`}>All Products</button>
                   {categories.map(cat => (
                      <button key={cat.id} onClick={() => handleMobileNav({ name: 'products', categoryId: cat.id })} className={`${navButtonClasses} text-gray-300`}>{cat.name}</button>
                   ))}
@@ -145,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                 <button onClick={() => handleMobileNav({ name: 'offers' })} className={navButtonClasses}>Offers</button>
                 
                 {profile?.role === 'admin' && <button onClick={() => handleMobileNav({ name: 'admin' })} className={navButtonClasses}>Admin Dashboard</button>}
-                {profile?.role === 'wholesale_buyer' && <button onClick={() => handleMobileNav({ name: 'wholesale' })} className={navButtonClasses}>Wholesale Area</button>}
+                {profile?.role === 'wholesale_buyer' && <button onClick={() => handleMobileNav({ name: 'wholesale' })} className={navButtonClasses}>Wholesale Dashboard</button>}
                 
                  <div className="pt-4 border-t border-gray-700">
                     {session ? (

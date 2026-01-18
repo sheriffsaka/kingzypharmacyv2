@@ -71,12 +71,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, profile, onProductSe
             loading="lazy"
         />
       </div>
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-lg font-semibold text-brand-dark mb-1">{product.name}</h3>
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="text-base font-semibold text-brand-dark mb-1 truncate">{product.name}</h3>
         <p className="text-gray-500 text-sm mb-2">{product.dosage}</p>
-        <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-2">{product.description}</p>
+        <p className="text-gray-600 text-sm mb-3 flex-grow line-clamp-2">{product.description}</p>
         <div className="flex justify-between items-center mt-auto">
-          <span className="text-xl font-bold text-brand-primary">{prefix}{price}</span>
+          <span className="text-lg font-bold text-brand-primary">{prefix}{price}</span>
           <button 
             onClick={handleAddToCart}
             disabled={product.stock_status === 'out_of_stock'}

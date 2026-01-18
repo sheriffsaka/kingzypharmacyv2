@@ -1,17 +1,17 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Product, Profile, Category } from '../types';
 import ProductList from './ProductList';
 import { supabase } from '../lib/supabase/client';
 import { SearchIcon } from './Icons';
 import DealsOfTheDay from './DealsOfTheDay';
-import FeaturedBrands from './FeaturedBrands';
 import CategoryCard from './CategoryCard';
 import HealthArticles from './HealthArticles';
 import Testimonials from './Testimonials';
 import WhyChooseUs from './WhyChooseUs';
 import DownloadApp from './DownloadApp';
 
+type SortOption = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc';
 
 interface ProductListPageProps {
   profile: Profile | null;
@@ -22,10 +22,11 @@ interface ProductListPageProps {
 }
 
 const ProductListPage: React.FC<ProductListPageProps> = ({ profile, onProductSelect, selectedCategoryId, onSelectCategory, categories }) => {
-  const [products, setProducts] = React.useState<Product[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('name_asc');
 
   React.useEffect(() => {
     const fetchProducts = async () => {
@@ -59,7 +60,7 @@ const ProductListPage: React.FC<ProductListPageProps> = ({ profile, onProductSel
     setSearchQuery('');
   }, [selectedCategoryId]);
 
-  const filteredProducts = React.useMemo(() => {
+  const sortedAndFilteredProducts = useMemo(() => {
     return products
       .filter(product => {
         // Category filter
@@ -73,8 +74,22 @@ const ProductListPage: React.FC<ProductListPageProps> = ({ profile, onProductSel
           return false;
         }
         return true;
+      })
+      .sort((a, b) => {
+          switch (sortOption) {
+              case 'name_asc':
+                  return a.name.localeCompare(b.name);
+              case 'name_desc':
+                  return b.name.localeCompare(a.name);
+              case 'price_asc':
+                  return (a.prices?.retail ?? 0) - (b.prices?.retail ?? 0);
+              case 'price_desc':
+                  return (b.prices?.retail ?? 0) - (a.prices?.retail ?? 0);
+              default:
+                  return 0;
+          }
       });
-  }, [products, searchQuery, selectedCategoryId]);
+  }, [products, searchQuery, selectedCategoryId, sortOption]);
   
   const dealsProducts = React.useMemo(() => products.slice(0, 5), [products]);
 
@@ -102,14 +117,30 @@ const ProductListPage: React.FC<ProductListPageProps> = ({ profile, onProductSel
       
       {/* Product List Section */}
       <div className="container mx-auto px-4 py-12">
-        <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">
-            {selectedCategoryId ? categories.find(c => c.id === selectedCategoryId)?.name : (searchQuery ? 'Search Results' : 'All Products')}
-        </h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold text-center text-brand-dark mb-4 sm:mb-0">
+                {selectedCategoryId ? categories.find(c => c.id === selectedCategoryId)?.name : (searchQuery ? 'Search Results' : 'All Products')}
+            </h2>
+            <div className="flex items-center gap-2">
+                <label htmlFor="sort-products" className="font-semibold text-gray-700">Sort by:</label>
+                <select 
+                    id="sort-products"
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value as SortOption)}
+                    className="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-secondary focus:border-brand-secondary"
+                >
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="price_asc">Price (Low to High)</option>
+                    <option value="price_desc">Price (High to Low)</option>
+                </select>
+            </div>
+        </div>
         {loading && <p className="text-center">Loading products...</p>}
         {error && <p className="text-center text-red-500">{error}</p>}
         {!loading && !error && (
             <ProductList 
-                products={filteredProducts}
+                products={sortedAndFilteredProducts}
                 profile={profile}
                 onProductSelect={onProductSelect}
             />
@@ -130,7 +161,6 @@ const ProductListPage: React.FC<ProductListPageProps> = ({ profile, onProductSel
           </div>
       </section>
 
-      <FeaturedBrands />
       <HealthArticles />
       <Testimonials />
       <WhyChooseUs />

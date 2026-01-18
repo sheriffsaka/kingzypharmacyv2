@@ -5,7 +5,7 @@ const DownloadApp: React.FC = () => {
     return (
         <section className="bg-brand-primary">
             <div className="container mx-auto px-4 py-12">
-                <div className="flex flex-col md:flex-row items-center justify-center text-center md:text-left gap-8">
+                <div className="flex flex-col md:flex-row items-center justify-center text-center md:text-left gap-4 md:gap-8">
                     <div className="md:w-1/2">
                          <h2 className="text-3xl font-bold text-white mb-4">Download the Kingzy Pharma App</h2>
                          <p className="text-brand-light mb-6">Get access to exclusive deals, manage your prescriptions, and get your medicines delivered faster. Your pharmacy, in your pocket.</p>
@@ -18,11 +18,11 @@ const DownloadApp: React.FC = () => {
                             </a>
                          </div>
                     </div>
-                     <div className="md:w-1/3 flex justify-center">
+                     <div className="md:w-1/3 flex justify-center mt-8 md:mt-0">
                         <img 
-                            src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768673680/kingzyapp2_chy5xk.jpg"
-                            alt="Mobile App Screenshot"
-                            className="w-64 h-auto"
+                            src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768715113/kingzyapp_final-removebg_gwywcy.png"
+                            alt="Kingzy Pharmaceuticals Mobile App"
+                            className="w-80 h-auto transform transition-transform duration-500 hover:scale-105 hover:-rotate-2"
                         />
                     </div>
                 </div>

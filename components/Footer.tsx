@@ -1,8 +1,29 @@
 
 import React from 'react';
 import { FacebookIcon, TwitterIcon, InstagramIcon, LinkedInIcon } from './Icons';
+import { View, Category } from '../types';
 
-const Footer: React.FC = () => {
+interface FooterProps {
+    onNavigate: (view: View) => void;
+    categories: Category[];
+}
+
+const Footer: React.FC<FooterProps> = ({ onNavigate, categories }) => {
+    
+    const categoryLinks = [
+        'Pain Relief',
+        'Vitamins & Supplements',
+        'Allergy & Hay Fever',
+        'Digestive Health'
+    ];
+    
+    const handleCategoryClick = (categoryName: string) => {
+        const category = categories.find(c => c.name === categoryName);
+        if (category) {
+            onNavigate({ name: 'products', categoryId: category.id });
+        }
+    };
+
     return (
         <footer className="bg-brand-dark text-white">
             <div className="container mx-auto px-4 py-12">
@@ -22,10 +43,11 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="font-bold text-lg mb-4">Featured Categories</h3>
                         <ul className="space-y-2 text-gray-300">
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Pain Relief</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Vitamins</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Allergy & Hay Fever</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Digestive Health</a></li>
+                             {categoryLinks.map(name => (
+                                <li key={name}>
+                                    <button onClick={() => handleCategoryClick(name)} className="hover:text-brand-secondary transition-colors text-left">{name}</button>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
@@ -33,10 +55,10 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="font-bold text-lg mb-4">Need Help</h3>
                         <ul className="space-y-2 text-gray-300">
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Contact Us</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">FAQs</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Shipping Information</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Returns Policy</a></li>
+                            <li><button onClick={() => onNavigate({ name: 'contact'})} className="hover:text-brand-secondary transition-colors">Contact Us</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'faq'})} className="hover:text-brand-secondary transition-colors">FAQs</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Shipping Information</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Returns Policy</button></li>
                         </ul>
                     </div>
 
@@ -44,9 +66,9 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="font-bold text-lg mb-4">Policy Info</h3>
                         <ul className="space-y-2 text-gray-300">
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Privacy Policy</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Terms of Use</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Cookie Policy</a></li>
+                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Privacy Policy</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Terms of Use</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Cookie Policy</button></li>
                         </ul>
                     </div>
 
