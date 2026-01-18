@@ -11,6 +11,13 @@ export const ArrowLeftIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
+export const ArrowRightIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+    </svg>
+);
+
+
 export const ShoppingCartIcon: React.FC<IconProps> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c.51 0 .962-.343 1.087-.835l1.823-6.831a1.5 1.5 0 00-1.423-2.082H5.523M6 18a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm12.75 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -118,6 +125,14 @@ export const BriefcaseIcon: React.FC<IconProps> = ({ className }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 8.25c-.394.394-.82.72-1.284 1.006-1.127.563-2.43.563-3.557 0-.464-.286-.89-.612-1.284-1.006M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
 );
+
+// Form & Upload Icons
+export const CloudUploadIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+    </svg>
+);
+
 
 // FAQ & Contact Icons
 export const ChevronDownIcon: React.FC<IconProps> = ({ className }) => (

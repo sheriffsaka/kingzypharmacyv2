@@ -33,7 +33,7 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
             <HeroSection 
                 title="Partner with Kingzy Pharmaceuticals"
                 subtitle="Join our network of pharmacies and healthcare providers to access exclusive wholesale benefits and grow your business."
-                imageUrl="https://images.unsplash.com/photo-1583324113620-910245057952?q=80&w=1200"
+                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768757551/warehouse3_oabgkd.jpg"
             />
             
             <section className="py-16 bg-gray-50">
@@ -64,7 +64,7 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
                         </div>
 
                         {/* Bento Box 3: Image */}
-                        <div className="relative rounded-xl shadow-lg border overflow-hidden min-h-[250px] bg-cover bg-center" style={{backgroundImage: "url('https://images.unsplash.com/photo-1606303248398-a73a759a224a?q=80&w=800')"}}>
+                        <div className="relative rounded-xl shadow-lg border overflow-hidden min-h-[250px] bg-cover bg-center" style={{backgroundImage: "url('https://res.cloudinary.com/dzbibbld6/image/upload/v1768758490/supplychain2_bzj3zk.jpg')"}}>
                            <div className="absolute inset-0 bg-black/40 flex items-end p-6">
                                <h3 className="text-xl font-bold text-white">A Supply Chain You Can Trust</h3>
                            </div>
@@ -76,7 +76,7 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
                                 <h3 className="text-2xl font-bold text-brand-dark">Ready to Get Started?</h3>
                                 <p className="text-gray-600 mt-1">Our team is ready to help you with the onboarding process.</p>
                             </div>
-                            <button onClick={() => onNavigate({ name: 'about' })} className="bg-accent-green text-white font-bold py-3 px-8 rounded-full hover:bg-green-600 transition-colors duration-300 whitespace-nowrap">
+                            <button onClick={() => onNavigate({ name: 'contact' })} className="bg-accent-green text-white font-bold py-3 px-8 rounded-full hover:bg-green-600 transition-colors duration-300 whitespace-nowrap">
                                 Contact Our Team
                             </button>
                         </div>

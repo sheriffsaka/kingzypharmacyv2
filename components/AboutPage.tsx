@@ -32,14 +32,14 @@ const AboutPage: React.FC = () => {
             <HeroSection 
                 title="About Kingzy Pharmaceuticals"
                 subtitle="Your trusted partner in health and wellness, committed to providing accessible, affordable, and authentic pharmaceutical products."
-                imageUrl="https://images.unsplash.com/photo-1584515933487-779824d27937?q=80&w=1200"
+                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768765153/aboutbanner_d1s8jg.jpg"
             />
 
             {/* Mission Section */}
             <section className="py-16">
                 <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div>
-                        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=800" alt="Pharmacists working" className="rounded-lg shadow-lg" />
+                        <img src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768765153/aboutimage_t72nez.jpg" alt="Pharmacists working" className="rounded-lg shadow-lg" />
                     </div>
                     <div>
                         <h2 className="text-3xl font-bold text-brand-dark mb-4">Our Mission</h2>

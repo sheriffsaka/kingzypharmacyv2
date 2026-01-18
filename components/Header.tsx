@@ -69,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
   return (
     <header className="bg-brand-primary text-white shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="flex items-center cursor-pointer" onClick={() => onNavigate({ name: 'products' })}>
+        <div className="flex items-center cursor-pointer" onClick={() => onNavigate({ name: 'home' })}>
           <div className="bg-white rounded-full p-1 mr-2 shadow-sm">
             <img src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768670962/kingzylogo_rflzr9.png" alt="Kingzy Pharmaceuticals Logo" className="h-10" />
           </div>

@@ -24,7 +24,7 @@ const ContactPage: React.FC = () => {
             <HeroSection 
                 title="Get In Touch"
                 subtitle="We're here to help. Contact us with any questions or concerns, and our team will get back to you as soon as possible."
-                imageUrl="https://images.unsplash.com/photo-1587560699334-cc426240169f?q=80&w=1200"
+                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768765666/contactbanner_vrn0dc.jpg"
             />
             
             <section className="py-16">

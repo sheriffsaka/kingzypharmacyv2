@@ -8,7 +8,7 @@ const PlusMembership: React.FC = () => {
             <HeroSection 
                 title="Kingzy PLUS"
                 subtitle="Unlock exclusive benefits, free delivery, and priority service with our upcoming premium membership."
-                imageUrl="https://images.unsplash.com/photo-1579621970795-87f54d5921ba?q=80&w=1200"
+                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768767278/premiummain1_z3ryqz.jpg"
             />
             <div className="container mx-auto px-4 py-16 text-center">
                  <div className="max-w-2xl mx-auto">

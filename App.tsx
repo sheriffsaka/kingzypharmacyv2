@@ -2,7 +2,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import Header from './components/Header';
-import ProductListPage from './components/HomePage';
+import HomePage from './components/HomePage';
+import ProductsPage from './components/ProductsPage';
 import ProductDetailPage from './components/ProductDetailPage';
 import CartPage from './components/CartPage';
 import OrderSuccessPage from './components/OrderSuccessPage';
@@ -29,7 +30,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [currentView, setCurrentView] = useState<View>({ name: 'products' });
+  const [currentView, setCurrentView] = useState<View>({ name: 'home' });
   const { cartItemCount, setProfileForCart } = useCart();
 
   useEffect(() => {
@@ -53,12 +54,12 @@ const App: React.FC = () => {
       setSession(session);
       if (session?.user) {
         await fetchProfile(session.user);
-        // If the user was on the auth page, redirect them to the products page after login.
-        setCurrentView(prevView => prevView.name === 'auth' ? { name: 'products' } : prevView);
+        // If the user was on the auth page, redirect them to the home page after login.
+        setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
       } else {
         setProfile(null);
         setProfileForCart(null); // Clear profile in cart context on logout
-        setCurrentView({ name: 'products' });
+        setCurrentView({ name: 'home' });
       }
     });
 
@@ -95,8 +96,16 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch(currentView.name) {
+      case 'home':
+        return <HomePage 
+                 profile={profile}
+                 onNavigate={handleNavigation}
+                 categories={categories}
+                 onProductSelect={(productId) => handleNavigation({ name: 'productDetail', productId })}
+                 onSelectCategory={(categoryId) => handleNavigation({ name: 'products', categoryId: categoryId })}
+               />;
       case 'products':
-        return <ProductListPage 
+        return <ProductsPage 
                   profile={profile}
                   onProductSelect={(productId) => handleNavigation({ name: 'productDetail', productId })}
                   onSelectCategory={(categoryId) => handleNavigation({ name: 'products', categoryId: categoryId })}
@@ -150,12 +159,12 @@ const App: React.FC = () => {
       case 'faq':
         return <FAQPage />;
       default:
-        return <ProductListPage 
-                 profile={profile} 
+        return <HomePage 
+                 profile={profile}
+                 onNavigate={handleNavigation}
+                 categories={categories}
                  onProductSelect={(productId) => handleNavigation({ name: 'productDetail', productId })}
                  onSelectCategory={(categoryId) => handleNavigation({ name: 'products', categoryId: categoryId })}
-                 selectedCategoryId={null}
-                 categories={categories}
                />;
     }
   };

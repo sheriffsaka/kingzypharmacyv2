@@ -8,7 +8,7 @@ const OffersPage: React.FC = () => {
             <HeroSection 
                 title="Special Offers"
                 subtitle="Discover exciting discounts, bundle deals, and seasonal promotions on your favorite healthcare products."
-                imageUrl="https://images.unsplash.com/photo-1509652259642-1823a49195b4?q=80&w=1200"
+                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768767750/speciaoffer1_jrk6be.jpg"
             />
             <div className="container mx-auto px-4 py-16 text-center">
                  <div className="max-w-2xl mx-auto">
