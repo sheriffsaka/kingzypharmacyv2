@@ -5,11 +5,12 @@ import { supabase } from '../lib/supabase/client';
 import { ArrowRightIcon } from './Icons';
 import HeroCarousel from './HeroCarousel';
 import DealsOfTheDay from './DealsOfTheDay';
-import CategoryAndArticlesSection from './CategoryAndArticlesSection';
 import Testimonials from './Testimonials';
 import WhyChooseUs from './WhyChooseUs';
 import DownloadApp from './DownloadApp';
 import ProductList from './ProductList';
+import CategoryCard from './CategoryCard';
+import HealthArticles from './HealthArticles';
 
 interface HomePageProps {
   profile: Profile | null;
@@ -18,6 +19,27 @@ interface HomePageProps {
   onProductSelect: (productId: number) => void;
   onSelectCategory: (categoryId: number | null) => void;
 }
+
+const articles = [
+  {
+    title: "Understanding Common Pain Relievers",
+    summary: "Learn the difference between Paracetamol and Ibuprofen, their uses, and when to take them for effective and safe pain management.",
+    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673681/commonpainrelievers_oppbhh.jpg",
+    link: "#"
+  },
+  {
+    title: "The Importance of Vitamin D",
+    summary: "Discover why Vitamin D is crucial for bone health, immune function, and overall well-being, especially during seasons with less sun exposure.",
+     imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673688/vitaminD2_n8ylyp.jpg",
+    link: "#"
+  },
+  {
+    title: "Tips for Managing Seasonal Allergies",
+    summary: "Don't let allergies ruin your season. Here are some effective tips and remedies to help you manage symptoms and breathe easier.",
+    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673682/seasnalallegies_ercnva.jpg",
+    link: "#"
+  }
+];
 
 const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, onProductSelect, onSelectCategory }) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,7 +54,7 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
         const { data, error } = await supabase
           .from('products')
           .select('id, name, description, category_id, dosage, prices, stock_status, image_url, min_order_quantity, categories(id, name, description)')
-          .limit(10); // Fetch a few products for the page
+          .limit(10); // Fetch 10 products for the page
         
         if (error) throw error;
         const transformedData = (data || []).map((p: any) => ({
@@ -51,15 +73,11 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
   }, []);
 
   const dealProduct = products.find(p => p.stock_status === 'in_stock');
-  const previewProducts = products.slice(0, 8);
+  const previewProducts = products; // Use all 10 fetched products
 
   return (
     <div className="bg-white">
       <HeroCarousel onNavigate={onNavigate} />
-      
-      <WhyChooseUs />
-      
-      {dealProduct && <DealsOfTheDay product={dealProduct} onProductSelect={onProductSelect} />}
       
       {/* Our Products Section */}
       <section className="py-16 bg-white">
@@ -85,7 +103,29 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
           </div>
       </section>
 
-      <CategoryAndArticlesSection categories={categories} onSelectCategory={onSelectCategory} />
+      <WhyChooseUs />
+      
+      {dealProduct && <DealsOfTheDay product={dealProduct} onProductSelect={onProductSelect} />}
+
+      {/* Shop by Category Section */}
+      <section className="py-16 bg-gradient-to-b from-blue-50 to-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">Shop by Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+              {categories.slice(0, 5).map(cat => (
+                  <CategoryCard key={cat.id} category={cat} onSelectCategory={() => onSelectCategory(cat.id)} />
+              ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Health Articles Section */}
+      <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">Health Articles</h2>
+              <HealthArticles articles={articles} />
+          </div>
+      </section>
 
       <Testimonials />
 

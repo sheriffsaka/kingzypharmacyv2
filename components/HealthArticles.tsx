@@ -14,17 +14,19 @@ interface HealthArticlesProps {
 
 const HealthArticles: React.FC<HealthArticlesProps> = ({ articles }) => {
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {articles.map((article, index) => (
         <a 
           key={index} 
           href={article.link} 
-          className="group flex items-center gap-4 bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border"
+          className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 border overflow-hidden"
         >
-          <img src={article.imageUrl} alt={article.title} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-          <div className="flex-grow">
-            <h4 className="font-semibold text-brand-dark group-hover:text-brand-primary transition-colors">{article.title}</h4>
-            <p className="text-sm text-gray-500 line-clamp-2">{article.summary}</p>
+          <div className="relative aspect-video">
+             <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          </div>
+          <div className="p-6">
+            <h4 className="text-xl font-semibold text-brand-dark group-hover:text-brand-primary transition-colors mb-2">{article.title}</h4>
+            <p className="text-sm text-gray-600 line-clamp-3">{article.summary}</p>
           </div>
         </a>
       ))}

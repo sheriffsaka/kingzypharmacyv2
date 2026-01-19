@@ -6,7 +6,7 @@ CREATE TYPE public.user_role AS ENUM ('admin', 'wholesale_buyer', 'general_publi
 CREATE TYPE public.approval_status AS ENUM ('pending', 'approved', 'rejected');
 
 -- 2. Create the profiles table with loyalty discount
-DROP TABLE IF EXISTS public.profiles;
+DROP TABLE IF EXISTS public.profiles CASCADE;
 CREATE TABLE public.profiles (
   id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at timestamp with time zone NULL DEFAULT now(),
@@ -84,7 +84,8 @@ DROP TABLE IF EXISTS public.categories CASCADE;
 CREATE TABLE public.categories (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
-    description text
+    description text,
+    image_url text
 );
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can read categories" ON public.categories FOR SELECT USING (true);
@@ -113,7 +114,7 @@ CREATE POLICY "Public can read products" ON public.products FOR SELECT USING (tr
 
 
 -- 10. Create Related Products (Many-to-Many Join Table)
-DROP TABLE IF EXISTS public.related_products;
+DROP TABLE IF EXISTS public.related_products CASCADE;
 CREATE TABLE public.related_products (
     product_id_1 bigint NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
     product_id_2 bigint NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
@@ -150,7 +151,7 @@ CREATE POLICY "Admins can manage all orders" ON public.orders FOR ALL USING (pub
 
 
 -- 13. Create Order Items Table
-DROP TABLE IF EXISTS public.order_items;
+DROP TABLE IF EXISTS public.order_items CASCADE;
 CREATE TABLE public.order_items (
     id bigserial PRIMARY KEY,
     order_id bigint NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -159,7 +160,6 @@ CREATE TABLE public.order_items (
     unit_price numeric(10, 2) NOT NULL
 );
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
--- FIX: Replaced the restrictive SELECT-only policy with a comprehensive policy allowing users to fully manage their own order items.
 DROP POLICY IF EXISTS "Users can view their own order items" ON public.order_items;
 DROP POLICY IF EXISTS "Users can manage their own order items" ON public.order_items;
 CREATE POLICY "Users can manage their own order items" ON public.order_items FOR ALL USING (
@@ -183,7 +183,7 @@ CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'pay_on_
 
 
 -- 15. Create Payments Table
-DROP TABLE IF EXISTS public.payments;
+DROP TABLE IF EXISTS public.payments CASCADE;
 CREATE TABLE public.payments (
     id bigserial PRIMARY KEY,
     order_id bigint NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -215,7 +215,7 @@ DROP TYPE IF EXISTS public.invoice_status CASCADE;
 CREATE TYPE public.invoice_status AS ENUM ('draft', 'locked');
 
 -- 18. Create Invoices Table
-DROP TABLE IF EXISTS public.invoices;
+DROP TABLE IF EXISTS public.invoices CASCADE;
 CREATE TABLE public.invoices (
     id bigserial PRIMARY KEY,
     invoice_number text NOT NULL UNIQUE,
@@ -234,7 +234,7 @@ CREATE POLICY "Admins can manage all invoices" ON public.invoices FOR ALL USING 
 
 
 -- 20. Create Receipts Table
-DROP TABLE IF EXISTS public.receipts;
+DROP TABLE IF EXISTS public.receipts CASCADE;
 CREATE TABLE public.receipts (
     id bigserial PRIMARY KEY,
     receipt_number text NOT NULL UNIQUE,
@@ -378,29 +378,28 @@ CREATE TRIGGER on_payment_paid_create_receipt
 
 
 -- =================================================================
--- SEED DATA (UNCHANGED)
+-- SEED DATA
 -- =================================================================
--- 17. Seed Data
 -- Seed Categories
-INSERT INTO public.categories (name, description) VALUES
-('Pain Relief', 'Medications to alleviate various types of pain.'),
-('Vitamins & Supplements', 'Products to supplement your diet and support overall health.'),
-('Allergy & Hay Fever', 'Relief from seasonal and perennial allergy symptoms.'),
-('Digestive Health', 'Aids for indigestion, heartburn, and other digestive issues.'),
-('Cough, Cold & Flu', 'Remedies for common respiratory illnesses.');
+INSERT INTO public.categories (name, description, image_url) VALUES
+('Pain Relief', 'Medications to alleviate various types of pain.', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768841164/Painrelief-removebg-preview_g5uapx.png'),
+('Vitamins & Supplements', 'Products to supplement your diet and support overall health.', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768841163/vit_premovebg-preview_xljooq.png'),
+('Allergy & Hay Fever', 'Relief from seasonal and perennial allergy symptoms.', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768841165/allergymain-removebg-preview_xfjzyx.png'),
+('Digestive Health', 'Aids for indigestion, heartburn, and other digestive issues.', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768841163/digestive-removebg-preview_cjabvu.png'),
+('Cough, Cold & Flu', 'Remedies for common respiratory illnesses.', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768841163/cough-removebg-preview_eojqan.png');
 
 -- Seed Products with Naira prices and new, working image URLs
 INSERT INTO public.products (name, description, category_id, dosage, prices, min_order_quantity, stock_status, image_url) VALUES
-('Paracetamol', 'Effective relief from pain and fever. Suitable for adults and children over 12 years.', 1, '500mg, 16 tablets', '{"retail": 1500, "wholesale_tiers": [{"min_quantity": 20, "price": 1200}, {"min_quantity": 100, "price": 1050}]}', 20, 'in_stock', 'https://images.unsplash.com/photo-1607619056574-7d8d3ee536b2?q=80&w=800'),
-('Ibuprofen', 'Anti-inflammatory tablets for relief from rheumatic and muscular pain.', 1, '200mg, 16 tablets', '{"retail": 2200, "wholesale_tiers": [{"min_quantity": 20, "price": 1800}, {"min_quantity": 100, "price": 1650}]}', 20, 'in_stock', 'https://images.unsplash.com/photo-1550524354-0e49185a0833?q=80&w=800'),
-('Vitamin C Effervescent', 'High-strength Vitamin C to support your immune system.', 2, '1000mg, 20 tablets', '{"retail": 3500, "wholesale_tiers": [{"min_quantity": 10, "price": 3000}, {"min_quantity": 50, "price": 2750}]}', 10, 'low_stock', 'https://images.unsplash.com/photo-1625761109915-10515238515c?q=80&w=800'),
-('Cetirizine Hydrochloride', 'Provides fast and effective 24-hour relief from hay fever and other allergy symptoms.', 3, '10mg, 30 tablets', '{"retail": 4000, "wholesale_tiers": [{"min_quantity": 10, "price": 3500}, {"min_quantity": 50, "price": 3200}]}', 10, 'in_stock', 'https://images.unsplash.com/photo-1631549916768-4119b2e5b124?q=80&w=800'),
-('Antacid Tablets', 'Helps relieve symptoms of indigestion and heartburn with natural enzymes.', 4, '60 chewable tablets', '{"retail": 2800, "wholesale_tiers": [{"min_quantity": 15, "price": 2400}, {"min_quantity": 60, "price": 2100}]}', 15, 'out_of_stock', 'https://images.unsplash.com/photo-1550535033-de03a8d3e230?q=80&w=800'),
-('Daily Multivitamin Gummies', 'A daily multivitamin for adults in a delicious, easy-to-take gummy form.', 2, '60 gummies', '{"retail": 5500, "wholesale_tiers": [{"min_quantity": 12, "price": 4800}, {"min_quantity": 48, "price": 4300}]}', 12, 'in_stock', 'https://images.unsplash.com/photo-1583316175778-2201b1236f73?q=80&w=800'),
-('Glycerol Cough Syrup', 'Soothing relief for dry, tickly coughs. Non-drowsy formula.', 5, '200ml bottle', '{"retail": 2500, "wholesale_tiers": [{"min_quantity": 24, "price": 2100}, {"min_quantity": 96, "price": 1900}]}', 24, 'in_stock', 'https://images.unsplash.com/photo-1603946278988-15b9c131d90c?q=80&w=800'),
-('Melatonin Sleep Aid', 'Natural melatonin to help you fall asleep faster and improve sleep quality.', 2, '5mg, 90 tablets', '{"retail": 4200, "wholesale_tiers": [{"min_quantity": 10, "price": 3600}, {"min_quantity": 50, "price": 3300}]}', 10, 'low_stock', 'https://images.unsplash.com/photo-1562991094-3d062e411b91?q=80&w=800'),
-('Loratadine Allergy Relief', 'Non-drowsy allergy relief for indoor and outdoor allergies.', 3, '10mg, 30 tablets', '{"retail": 4500, "wholesale_tiers": [{"min_quantity": 10, "price": 3900}, {"min_quantity": 50, "price": 3600}]}', 10, 'in_stock', 'https://images.unsplash.com/photo-1631549916768-4119b2e5b124?q=80&w=800'),
-('Aspirin', 'Low-dose aspirin for pain relief and prevention of blood clots.', 1, '75mg, 28 tablets', '{"retail": 1200, "wholesale_tiers": [{"min_quantity": 25, "price": 950}, {"min_quantity": 100, "price": 800}]}', 25, 'in_stock', 'https://images.unsplash.com/photo-1550524354-0e49185a0833?q=80&w=800');
+('Paracetamol', 'Effective relief from pain and fever. Suitable for adults and children over 12 years.', 1, '500mg, 16 tablets', '{"retail": 1500, "wholesale_tiers": [{"min_quantity": 20, "price": 1200}, {"min_quantity": 100, "price": 1050}]}', 20, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png'),
+('Ibuprofen', 'Anti-inflammatory tablets for relief from rheumatic and muscular pain.', 1, '200mg, 16 tablets', '{"retail": 2200, "wholesale_tiers": [{"min_quantity": 20, "price": 1800}, {"min_quantity": 100, "price": 1650}]}', 20, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png'),
+('Vitamin C Effervescent', 'High-strength Vitamin C to support your immune system.', 2, '1000mg, 20 tablets', '{"retail": 3500, "wholesale_tiers": [{"min_quantity": 10, "price": 3000}, {"min_quantity": 50, "price": 2750}]}', 10, 'low_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr10_ogxr0t.png'),
+('Cetirizine Hydrochloride', 'Provides fast and effective 24-hour relief from hay fever and other allergy symptoms.', 3, '10mg, 30 tablets', '{"retail": 4000, "wholesale_tiers": [{"min_quantity": 10, "price": 3500}, {"min_quantity": 50, "price": 3200}]}', 10, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819812/pr3_ocnlnb.png'),
+('Antacid Tablets', 'Helps relieve symptoms of indigestion and heartburn with natural enzymes.', 4, '60 chewable tablets', '{"retail": 2800, "wholesale_tiers": [{"min_quantity": 15, "price": 2400}, {"min_quantity": 60, "price": 2100}]}', 15, 'out_of_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819814/pr1_vc2pne.png'),
+('Daily Multivitamin Gummies', 'A daily multivitamin for adults in a delicious, easy-to-take gummy form.', 2, '60 gummies', '{"retail": 5500, "wholesale_tiers": [{"min_quantity": 12, "price": 4800}, {"min_quantity": 48, "price": 4300}]}', 12, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr5_jpaxlh.png'),
+('Glycerol Cough Syrup', 'Soothing relief for dry, tickly coughs. Non-drowsy formula.', 5, '200ml bottle', '{"retail": 2500, "wholesale_tiers": [{"min_quantity": 24, "price": 2100}, {"min_quantity": 96, "price": 1900}]}', 24, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819814/pr4_sl96nd.png'),
+('Melatonin Sleep Aid', 'Natural melatonin to help you fall asleep faster and improve sleep quality.', 2, '5mg, 90 tablets', '{"retail": 4200, "wholesale_tiers": [{"min_quantity": 10, "price": 3600}, {"min_quantity": 50, "price": 3300}]}', 10, 'low_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr8_w8bqcm.png'),
+('Loratadine Allergy Relief', 'Non-drowsy allergy relief for indoor and outdoor allergies.', 3, '10mg, 30 tablets', '{"retail": 4500, "wholesale_tiers": [{"min_quantity": 10, "price": 3900}, {"min_quantity": 50, "price": 3600}]}', 10, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr7_ytnwx5.png'),
+('Aspirin', 'Low-dose aspirin for pain relief and prevention of blood clots.', 1, '75mg, 28 tablets', '{"retail": 1200, "wholesale_tiers": [{"min_quantity": 25, "price": 950}, {"min_quantity": 100, "price": 800}]}', 25, 'in_stock', 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819814/pr2_jxbqeh.png');
 
 
 -- Seed Related Products (Symmetric relationships)

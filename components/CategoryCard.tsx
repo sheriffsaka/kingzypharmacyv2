@@ -1,34 +1,29 @@
 
 import React from 'react';
 import { Category } from '../types';
-import { PillIcon, HeartIcon, BabyIcon, SunIcon, ClipboardCheckIcon } from './Icons';
 
 interface CategoryCardProps {
     category: Category;
     onSelectCategory: (id: number) => void;
 }
 
-const categoryIcons: { [key: string]: React.FC<{className?: string}> } = {
-    'Pain Relief': PillIcon,
-    'Vitamins & Supplements': SunIcon,
-    'Allergy & Hay Fever': HeartIcon,
-    'Digestive Health': ClipboardCheckIcon,
-    'Cough, Cold & Flu': BabyIcon,
-};
-
-
 const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectCategory }) => {
-    const Icon = categoryIcons[category.name] || PillIcon;
-
     return (
         <button 
             onClick={() => onSelectCategory(category.id)}
-            className="group flex flex-col items-center p-4 bg-white rounded-lg shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border text-center"
+            className="group relative block w-full aspect-[4/3] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
+            aria-label={`Shop ${category.name}`}
         >
-            <div className="p-4 bg-brand-light rounded-full mb-3">
-                 <Icon className="w-8 h-8 text-brand-primary" />
+            <img 
+                src={category.image_url || 'https://images.unsplash.com/photo-1583324113620-91024589d19a?q=80&w=800'}
+                alt={category.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-50 transition-colors duration-300"></div>
+            <div className="relative h-full flex items-center justify-center p-4">
+                <h3 className="text-white text-lg font-bold text-center shadow-sm">{category.name}</h3>
             </div>
-            <span className="font-semibold text-brand-dark">{category.name}</span>
         </button>
     )
 }

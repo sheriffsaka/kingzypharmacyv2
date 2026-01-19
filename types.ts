@@ -3,6 +3,7 @@ export interface Category {
   id: number;
   name: string;
   description?: string;
+  image_url?: string;
 }
 
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';

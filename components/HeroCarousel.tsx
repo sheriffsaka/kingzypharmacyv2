@@ -23,7 +23,7 @@ const slides = [
     ctaView: { name: 'about' } as View,
   },
   {
-    imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768763636/fastdelivery2_lftlci.jpg',
+    imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768834487/delivery3_htyfcw.jpg',
     title: 'Seamless Ordering & Fast Delivery',
     subtitle: 'Our state-of-the-art platform ensures your orders are processed efficiently and delivered on time.',
     ctaText: 'Explore Products',
