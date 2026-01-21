@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Order, Profile, OrderItem, Product } from '../types';
 import { EyeIcon, XIcon } from './Icons';
@@ -59,6 +58,7 @@ const AdminOrderManagement: React.FC = () => {
     const [selectedLogistics, setSelectedLogistics] = useState<Record<number, string>>({});
     const [updating, setUpdating] = useState<Record<number, boolean>>({});
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [popUrl, setPopUrl] = useState<string | null>(null);
 
 
     const handleAssignOrder = async (orderId: number) => {
@@ -127,6 +127,11 @@ const AdminOrderManagement: React.FC = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <div className="flex items-center gap-2">
                                                  <button onClick={() => setSelectedOrder(order)} className="p-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"><EyeIcon className="w-5 h-5"/></button>
+                                                {isAwaitingConfirmation && (
+                                                     <button onClick={() => setPopUrl('https://res.cloudinary.com/dzbibbld6/image/upload/v1768846395/sample-pop_lsw2yn.png')} className="text-sm font-semibold text-brand-secondary hover:underline">
+                                                        View POP
+                                                     </button>
+                                                )}
                                                 {isAwaitingConfirmation ? (
                                                      <button onClick={() => handleConfirmPayment(order.id)} disabled={updating[order.id]} className="bg-accent-green text-white font-semibold py-2 px-3 rounded-md hover:bg-green-600 transition disabled:bg-gray-400">
                                                         {updating[order.id] ? 'Confirming...' : 'Confirm Payment'}
@@ -164,7 +169,6 @@ const AdminOrderManagement: React.FC = () => {
                 </div>
             </div>
 
-            {/* Order Details Modal */}
             {selectedOrder && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -186,6 +190,21 @@ const AdminOrderManagement: React.FC = () => {
                                     <p>{selectedOrder.delivery_address.city}, {selectedOrder.delivery_address.state}</p>
                                 </div>
                            </div>
+                           <div>
+                                <h4 className="text-lg font-semibold text-brand-dark mb-2">Payment Details</h4>
+                                <div className="bg-gray-50 p-3 rounded-md text-sm space-y-1">
+                                    <p><strong>Method:</strong> <span className="capitalize">{selectedOrder.payments?.[0]?.payment_method?.replace('_', ' ') || 'N/A'}</span></p>
+                                    <p><strong>Status:</strong> <span className="capitalize font-medium">{selectedOrder.payments?.[0]?.payment_status?.replace('_', ' ') || 'N/A'}</span></p>
+                                    {selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && (
+                                        <p>
+                                            <strong>Action: </strong> 
+                                            <button onClick={() => setPopUrl('https://res.cloudinary.com/dzbibbld6/image/upload/v1768846395/sample-pop_lsw2yn.png')} className="text-brand-primary underline font-semibold">
+                                                View Proof of Payment
+                                            </button>
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                            <div>
                              <h4 className="text-lg font-semibold text-brand-dark mb-2">Order Items</h4>
                              <div className="space-y-3">
@@ -213,6 +232,20 @@ const AdminOrderManagement: React.FC = () => {
                         </div>
                         <div className="p-4 bg-gray-50 flex justify-end rounded-b-lg">
                             <button onClick={() => setSelectedOrder(null)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {popUrl && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg relative">
+                        <div className="p-4 border-b flex justify-between items-center">
+                            <h3 className="text-xl font-semibold">Proof of Payment</h3>
+                            <button onClick={() => setPopUrl(null)}><XIcon className="w-6 h-6"/></button>
+                        </div>
+                        <div className="p-4">
+                            <img src={popUrl} alt="Proof of Payment" className="w-full h-auto rounded-md"/>
                         </div>
                     </div>
                 </div>

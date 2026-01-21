@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Profile } from '../types';
 import { EyeIcon, XIcon } from './Icons';
@@ -19,58 +18,109 @@ const mockPendingBuyers: PendingBuyerDetails[] = [
 ];
 // ------------------------------------
 
+type ApprovalTab = 'wholesaler' | 'buyer';
+
 const AdminUserApproval: React.FC = () => {
     const [pendingBuyers, setPendingBuyers] = useState<PendingBuyerDetails[]>(mockPendingBuyers);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<PendingBuyerDetails | null>(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [activeTab, setActiveTab] = useState<ApprovalTab>('wholesaler');
+
 
     const handleApprove = async (userId: string) => {
         setMessage(null);
         const approvedUser = pendingBuyers.find(b => b.id === userId);
         setMessage(`User ${approvedUser?.email} approved successfully.`);
         setPendingBuyers(prev => prev.filter(buyer => buyer.id !== userId));
-        setSelectedUser(null); // Close modal on success
+        setSelectedUser(null);
+    };
+
+    const handleReject = async (userId: string) => {
+        if (!rejectionReason.trim()) {
+            alert("Please provide a reason for rejection.");
+            return;
+        }
+        setMessage(null);
+        const rejectedUser = pendingBuyers.find(b => b.id === userId);
+        // In a real app, you'd update the user's status to 'rejected' in the DB.
+        setMessage(`User ${rejectedUser?.email} has been rejected. Reason: ${rejectionReason}`);
+        setPendingBuyers(prev => prev.filter(buyer => buyer.id !== userId));
+        setSelectedUser(null);
+        setRejectionReason('');
     };
     
     const handleViewDetails = (user: PendingBuyerDetails) => {
+        setRejectionReason('');
         setSelectedUser(user);
     };
+
+    const TabButton = ({ tab, label }: { tab: ApprovalTab, label: string }) => (
+        <button
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                activeTab === tab ? 'bg-brand-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
+    const renderWholesalerApprovals = () => (
+        <>
+            {loading && <p>Loading pending approvals...</p>}
+            {error && <p className="text-red-500 font-semibold bg-red-100 p-3 rounded-md">{error}</p>}
+            
+            {!loading && !error && (
+                <div className="space-y-4">
+                    {pendingBuyers.length > 0 ? (
+                        <ul className="divide-y divide-gray-200">
+                            {pendingBuyers.map(buyer => (
+                                <li key={buyer.id} className="py-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium text-gray-800">{buyer.email}</p>
+                                        <p className="text-sm text-gray-500">Company: {buyer.companyName}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleViewDetails(buyer)}
+                                        className="bg-gray-200 text-brand-dark font-bold py-2 px-4 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2"
+                                    >
+                                        <EyeIcon className="w-5 h-5"/>
+                                        View Details
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-center text-gray-500 py-8">No pending wholesale approvals at this time.</p>
+                    )}
+                </div>
+            )}
+        </>
+    );
+    
+    const renderBuyerApprovals = () => (
+        <div className="text-center text-gray-500 py-8">
+            <p>Buyer approval workflow is not required for this role.</p>
+            <p className="text-sm">All 'general_public' users are auto-approved on signup.</p>
+        </div>
+    );
 
     return (
         <>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4">Wholesale Buyer Approval</h2>
-                {loading && <p>Loading pending approvals...</p>}
-                {error && <p className="text-red-500 font-semibold bg-red-100 p-3 rounded-md">{error}</p>}
+                <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">User Approval Queues</h2>
+                      <div className="flex items-center space-x-2 p-1 bg-gray-100 rounded-lg">
+                        <TabButton tab="wholesaler" label="Wholesaler Approval" />
+                        <TabButton tab="buyer" label="Buyer Approval" />
+                    </div>
+                </div>
                 {message && <p className="text-green-600 bg-green-100 p-3 rounded-md my-4">{message}</p>}
                 
-                {!loading && !error && (
-                    <div className="space-y-4">
-                        {pendingBuyers.length > 0 ? (
-                            <ul className="divide-y divide-gray-200">
-                                {pendingBuyers.map(buyer => (
-                                    <li key={buyer.id} className="py-4 flex items-center justify-between">
-                                        <div>
-                                            <p className="font-medium text-gray-800">{buyer.email}</p>
-                                            <p className="text-sm text-gray-500">Company: {buyer.companyName}</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleViewDetails(buyer)}
-                                            className="bg-gray-200 text-brand-dark font-bold py-2 px-4 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2"
-                                        >
-                                            <EyeIcon className="w-5 h-5"/>
-                                            View Details
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p>No pending approvals at this time.</p>
-                        )}
-                    </div>
-                )}
+                {activeTab === 'wholesaler' ? renderWholesalerApprovals() : renderBuyerApprovals()}
             </div>
 
             {/* User Details Modal */}
@@ -81,7 +131,7 @@ const AdminUserApproval: React.FC = () => {
                             <h3 className="text-xl font-semibold">Wholesaler Application</h3>
                             <button onClick={() => setSelectedUser(null)}><XIcon className="w-6 h-6"/></button>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                             <div><h4 className="text-sm font-semibold text-gray-500">Company Name</h4><p>{selectedUser.companyName}</p></div>
                             <div><h4 className="text-sm font-semibold text-gray-500">Contact Person</h4><p>{selectedUser.contactPerson}</p></div>
                             <div><h4 className="text-sm font-semibold text-gray-500">Email</h4><p>{selectedUser.email}</p></div>
@@ -89,9 +139,19 @@ const AdminUserApproval: React.FC = () => {
                             <div><h4 className="text-sm font-semibold text-gray-500">Shipping Address</h4><p>{selectedUser.shippingAddress}</p></div>
                              <div><h4 className="text-sm font-semibold text-gray-500">ID Document Type</h4><p>{selectedUser.idType}</p></div>
                               <div><h4 className="text-sm font-semibold text-gray-500">Uploaded Document</h4><a href="#" className="text-brand-primary underline">view_document.pdf</a></div>
+                            <div className="border-t pt-4">
+                                <label htmlFor="rejectionReason" className="text-sm font-semibold text-gray-500">Rejection Reason (if rejecting)</label>
+                                <textarea
+                                    id="rejectionReason"
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    className="w-full p-2 border rounded-md mt-1"
+                                    placeholder="e.g., Invalid ID document provided."
+                                />
+                            </div>
                         </div>
                         <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
-                            <button onClick={() => setSelectedUser(null)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Close</button>
+                            <button onClick={() => handleReject(selectedUser.id)} disabled={!rejectionReason.trim()} className="font-bold py-2 px-4 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400">Reject</button>
                             <button onClick={() => handleApprove(selectedUser.id)} className="bg-accent-green text-white font-bold py-2 px-4 rounded-md hover:bg-green-600">Approve Account</button>
                         </div>
                     </div>

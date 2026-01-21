@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Profile, Product, View, Order, OrderStatus, OrderStatusHistory, OrderItem } from '../types';
+import { Profile, Product, View, Order, OrderStatus, OrderStatusHistory, OrderItem, Payment } from '../types';
 // import { supabase } from '../lib/supabase/client'; // MOCK: Temporarily disabled for presentation
 import ProductList from './ProductList';
-import { SearchIcon, XIcon } from './Icons';
+import { SearchIcon, XIcon, CloudUploadIcon } from './Icons';
 import OrderTrackingTimeline from './OrderTrackingTimeline';
 
 // --- MOCK DATA FOR PRESENTATION ---
@@ -21,7 +21,7 @@ const initialWholesaleUserDetails = {
     memberSince: new Date(Date.now() - 31536000000).toLocaleDateString(), // ~1 year ago
 };
 
-const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[], order_items: (OrderItem & { products: Pick<Product, 'name' | 'image_url'>})[] })[] = [
+const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[], order_items: (OrderItem & { products: Pick<Product, 'name' | 'image_url'>})[], payments: Partial<Payment>[] })[] = [
     {
         id: 202401,
         user_id: '00000000-0000-0000-0000-000000000003',
@@ -31,6 +31,8 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         discount_applied: 15000,
         delivery_address: { fullName: 'Chidi Okonkwo', street: '123, Commerce Avenue', city: 'Lagos', state: 'Lagos', zip: '101241', phone: '08012345678' },
         customer_details: { email: 'wholesale@kingzy.com', userId: '00000000-0000-0000-0000-000000000003' },
+        // FIX: Completed mock payment data to satisfy the 'Payment' type.
+        payments: [{ id: 1, order_id: 202401, payment_method: 'online', amount: 150000, created_at: new Date(Date.now() - 86400000 * 2).toISOString(), payment_status: 'paid' }],
         order_items: [
             { id: 10, order_id: 202401, product_id: 4, quantity: 1, unit_price: 66000, products: { name: 'Gaviscon Double Action (Carton)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819812/pr2_b8czjp.png' } },
             { id: 11, order_id: 202401, product_id: 2, quantity: 3, unit_price: 22000, products: { name: 'Ibuprofen (Case)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png' } },
@@ -47,18 +49,19 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         id: 202402,
         user_id: '00000000-0000-0000-0000-000000000003',
         created_at: new Date().toISOString(), // Today
-        status: 'PROCESSING',
+        status: 'ORDER_RECEIVED',
         total_price: 220000,
         discount_applied: 22000,
         delivery_address: { fullName: 'Chidi Okonkwo', street: '123, Commerce Avenue', city: 'Lagos', state: 'Lagos', zip: '101241', phone: '08012345678' },
         customer_details: { email: 'wholesale@kingzy.com', userId: '00000000-0000-0000-0000-000000000003' },
+        // FIX: Completed mock payment data to satisfy the 'Payment' type.
+        payments: [{ id: 2, order_id: 202402, payment_method: 'online', amount: 220000, created_at: new Date().toISOString(), payment_status: 'awaiting_confirmation' }],
         order_items: [
              { id: 12, order_id: 202402, product_id: 1, quantity: 20, unit_price: 8000, products: { name: 'Paracetamol (Bulk)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png' } },
              { id: 13, order_id: 202402, product_id: 3, quantity: 2, unit_price: 25000, products: { name: 'Vitamin C Effervescent (Bulk)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr10_ogxr0t.png' } },
         ] as any,
         order_status_history: [
             { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: 'user' },
-            { id: 2, status: 'PROCESSING', updated_at: new Date(Date.now() + 3600000).toISOString(), updated_by: 'admin' },
         ]
     }
 ];
@@ -111,8 +114,8 @@ const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavi
       <h1 className="text-3xl font-bold text-brand-dark mb-6">Wholesale Dashboard</h1>
       <div className="flex space-x-2 border-b mb-6">
         <TabButton tab="catalog" label="Product Catalog" />
-        <TabButton tab="profile" label="My Profile" />
         <TabButton tab="orders" label="My Orders" />
+        <TabButton tab="profile" label="My Profile" />
       </div>
       <div>
         {renderContent()}
@@ -176,7 +179,7 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
     const [formState, setFormState] = useState(initialWholesaleUserDetails);
 
     const handleEdit = () => {
-        setFormState(userDetails); // Reset form state to current details
+        setFormState(userDetails);
         setIsEditing(true);
     };
 
@@ -186,8 +189,6 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock save: In a real app, this would be a Supabase call.
-        console.log("Saving profile data:", formState);
         setUserDetails(formState);
         setIsEditing(false);
     };
@@ -201,7 +202,7 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
             <div className="bg-white p-6 rounded-lg shadow-md border">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-semibold text-brand-dark">Account Information</h2>
-                    {!isEditing && <button onClick={handleEdit} className="font-bold py-2 px-4 rounded-md bg-brand-primary text-white hover:bg-brand-secondary">Edit Profile</button>}
+                    <button onClick={handleEdit} className="font-bold py-2 px-4 rounded-md bg-brand-primary text-white hover:bg-brand-secondary">Edit Profile</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
@@ -217,7 +218,6 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
                 </div>
             </div>
 
-            {/* Edit Profile Modal */}
             {isEditing && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
@@ -245,7 +245,21 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
 };
 
 const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = ({ onProductSelect }) => {
+    const [orders, setOrders] = useState(mockWholesaleOrders);
     const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+    const [uploadingPopFor, setUploadingPopFor] = useState<number | null>(null);
+    const [popFile, setPopFile] = useState<File | null>(null);
+    const [uploadedPops, setUploadedPops] = useState<Set<number>>(new Set());
+
+    const handleUploadPop = (orderId: number) => {
+        // MOCK: This simulates telling the backend the POP has been uploaded.
+        // In a real app, this would upload the file and update a record.
+        // Here, we just update local state for UI feedback.
+        alert('Proof of payment uploaded successfully! Admin will now verify.');
+        setUploadedPops(prev => new Set(prev).add(orderId));
+        setUploadingPopFor(null);
+        setPopFile(null);
+    };
 
     const getStatusChip = (status: OrderStatus) => {
         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
@@ -261,50 +275,114 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
     };
 
     return (
-         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-brand-dark">My Orders</h2>
-            {mockWholesaleOrders.length === 0 ? (
-                <p>You have not placed any orders yet.</p>
-            ) : (
-                mockWholesaleOrders.map(order => (
-                    <div key={order.id} className="bg-white p-6 rounded-lg shadow-md border">
-                        <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
-                            <div>
-                                <h3 className="text-xl font-semibold">Order #{order.id}</h3>
-                                <p className="text-sm text-gray-500">Placed on: {new Date(order.created_at).toLocaleDateString()}</p>
+        <>
+            <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-brand-dark">My Orders</h2>
+                {orders.length === 0 ? (
+                    <p>You have not placed any orders yet.</p>
+                ) : (
+                    orders.map(order => {
+                        const payment = order.payments?.[0];
+                        const isAwaitingPayment = payment?.payment_status === 'awaiting_confirmation';
+                        const hasUploaded = uploadedPops.has(order.id);
+
+                        return (
+                        <div key={order.id} className="bg-white p-6 rounded-lg shadow-md border">
+                            <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                                <div>
+                                    <h3 className="text-xl font-semibold">Order #{order.id}</h3>
+                                    <p className="text-sm text-gray-500">Placed on: {new Date(order.created_at).toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {isAwaitingPayment ? <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${hasUploaded ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>{hasUploaded ? 'Verification Pending' : 'Awaiting Payment'}</span> : getStatusChip(order.status)}
+                                    <span className="text-lg font-bold">₦{order.total_price.toLocaleString()}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                                {getStatusChip(order.status)}
-                                <span className="text-lg font-bold">₦{order.total_price.toLocaleString()}</span>
+                            <div className="border-t pt-4 mt-4 flex flex-wrap gap-4">
+                                <button onClick={() => setExpandedOrder(prev => prev === order.id ? null : order.id)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300 transition-colors">
+                                    {expandedOrder === order.id ? 'Hide Details' : 'View Details'}
+                                </button>
+                                {isAwaitingPayment && !hasUploaded && (
+                                    <button onClick={() => setUploadingPopFor(order.id)} className="font-bold py-2 px-4 rounded-md bg-yellow-400 text-black hover:bg-yellow-500">
+                                        Upload Payment Proof
+                                    </button>
+                                )}
                             </div>
+                            {expandedOrder === order.id && (
+                                <div className="mt-4 border-t pt-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-4 text-brand-dark">Order Items</h3>
+                                            <div className="space-y-3">
+                                                {order.order_items?.map(item => (
+                                                    <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-2 rounded-md">
+                                                        <img src={item.products?.image_url} alt={item.products?.name} className="w-14 h-14 object-cover rounded"/>
+                                                        <div className="flex-grow">
+                                                            <p className="font-semibold">{item.products?.name}</p>
+                                                            <p className="text-sm text-gray-600">{item.quantity} x ₦{item.unit_price.toLocaleString()}</p>
+                                                        </div>
+                                                        <p className="font-semibold text-right">₦{(item.quantity * item.unit_price).toLocaleString()}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-4 text-brand-dark">Payment & Delivery</h3>
+                                            <div className="space-y-4 bg-gray-50 p-4 rounded-md mb-6">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-500">Payment Method</p>
+                                                    <p className="capitalize">{payment?.payment_method?.replace('_', ' ') || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-500">Payment Status</p>
+                                                    <p className="capitalize font-semibold">{payment?.payment_status?.replace('_', ' ') || 'N/A'}</p>
+                                                </div>
+                                                {hasUploaded && (
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-500">Proof of Payment</p>
+                                                        <div className="flex items-center gap-2">
+                                                           <span className="text-green-600 font-semibold">Uploaded, pending verification.</span>
+                                                           <a href="#" className="text-brand-primary underline text-sm">View</a>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <OrderTrackingTimeline history={order.order_status_history} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="border-t pt-4 mt-4 flex flex-wrap gap-4">
-                            <button onClick={() => setExpandedOrder(prev => prev === order.id ? null : order.id)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300 transition-colors">
-                                {expandedOrder === order.id ? 'Hide Details' : 'View Details'}
+                    )})
+                )}
+            </div>
+            
+            {/* POP Upload Modal */}
+            {uploadingPopFor !== null && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h3 className="text-xl font-semibold">Upload Proof of Payment for Order #{uploadingPopFor}</h3>
+                            <button type="button" onClick={() => { setUploadingPopFor(null); setPopFile(null); }}><XIcon className="w-6 h-6"/></button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-4">Please upload a clear image or PDF of your bank transfer receipt. Our team will verify it to process your order.</p>
+                            <label htmlFor="pop-upload" className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-6 text-center block hover:border-brand-primary">
+                                <CloudUploadIcon className="w-12 h-12 mx-auto text-gray-400" />
+                                <span className="mt-2 block text-sm font-semibold text-gray-600">{popFile ? popFile.name : 'Click to browse or drag & drop'}</span>
+                                <input id="pop-upload" type="file" className="sr-only" onChange={(e) => setPopFile(e.target.files ? e.target.files[0] : null)} />
+                            </label>
+                        </div>
+                        <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
+                            <button type="button" onClick={() => { setUploadingPopFor(null); setPopFile(null); }} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Cancel</button>
+                            <button onClick={() => handleUploadPop(uploadingPopFor)} disabled={!popFile} className="bg-accent-green text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                Submit for Verification
                             </button>
                         </div>
-                        {expandedOrder === order.id && (
-                             <div className="mt-4 border-t pt-4">
-                                <h3 className="text-lg font-semibold mb-4 text-brand-dark">Order Items</h3>
-                                <div className="space-y-3 mb-6">
-                                    {order.order_items?.map(item => (
-                                        <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-2 rounded-md">
-                                            <img src={item.products?.image_url} alt={item.products?.name} className="w-14 h-14 object-cover rounded"/>
-                                            <div className="flex-grow">
-                                                <p className="font-semibold">{item.products?.name}</p>
-                                                <p className="text-sm text-gray-600">{item.quantity} x ₦{item.unit_price.toLocaleString()}</p>
-                                            </div>
-                                            <p className="font-semibold text-right">₦{(item.quantity * item.unit_price).toLocaleString()}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                <OrderTrackingTimeline history={order.order_status_history} />
-                            </div>
-                        )}
                     </div>
-                ))
+                </div>
             )}
-        </div>
+        </>
     )
 }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useCart } from '../contexts/CartContext';
@@ -37,6 +36,8 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
             zip: '101241'
         });
         setPaymentMethod('bank_transfer'); // Default wholesale to bank transfer
+    } else {
+        setPaymentMethod('pay_on_delivery'); // Default public to pay on delivery
     }
   }, [isWholesale]);
   
@@ -67,7 +68,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
               user_id: session.user.id,
               total_price: total,
               payment_method: paymentMethod,
-              status: paymentMethod === 'bank_transfer' ? 'awaiting_confirmation' : 'pending'
+              status: paymentMethod === 'bank_transfer' ? 'awaiting_confirmation' : 'pay_on_delivery'
           });
           await new Promise(res => setTimeout(res, 1000)); // Simulate network delay
           console.log(`Mock Order #${mockOrderId} created.`);
@@ -77,8 +78,9 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
           
           if (isWholesale) {
             onNavigate({ name: 'invoicePreview', orderId: mockOrderId });
-          } else {
-             // For general public, go to standard success page.
+          } else if (paymentMethod === 'bank_transfer') {
+            onNavigate({ name: 'paymentInstructions', orderId: mockOrderId });
+          } else { // This would be 'pay_on_delivery' for buyers
             onNavigate({ name: 'orderSuccess', orderId: mockOrderId });
           }
 
@@ -113,9 +115,13 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                 <input type="radio" name="paymentMethod" value="pay_on_delivery" checked={paymentMethod === 'pay_on_delivery'} onChange={() => setPaymentMethod('pay_on_delivery')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
                 <div className="ml-3"><span className="font-semibold text-gray-800">Pay on Delivery</span><p className="text-sm text-gray-500">Pay with cash or card when your order arrives.</p></div>
             </label>
+            <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
+                <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
+                <div className="ml-3"><span className="font-semibold text-gray-800">Bank Transfer</span><p className="text-sm text-gray-500">Receive bank details after placing order.</p></div>
+            </label>
              <label className="flex items-center p-4 border rounded-md cursor-not-allowed bg-gray-100 opacity-60">
                 <input type="radio" name="paymentMethod" value="online" checked={paymentMethod === 'online'} className="h-4 w-4" disabled/>
-                <div className="ml-3"><span className="font-semibold text-gray-500">Online Payment</span><p className="text-sm text-gray-400">Card, Bank Transfer (Coming Soon)</p></div>
+                <div className="ml-3"><span className="font-semibold text-gray-500">Online Payment (Card)</span><p className="text-sm text-gray-400">Coming Soon</p></div>
             </label>
         </div>
     );
