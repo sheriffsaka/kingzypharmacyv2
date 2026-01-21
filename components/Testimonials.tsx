@@ -34,14 +34,14 @@ const Testimonials: React.FC = () => {
   const currentTestimonial = testimonials[currentIndex];
 
   return (
-    <div className="relative bg-gray-50 p-6 rounded-lg shadow-sm border flex flex-col justify-between">
+    <div className="relative bg-brand-primary text-white p-8 rounded-lg shadow-lg flex flex-col justify-between min-h-[280px]">
       {/* The testimonial content with transition */}
       <div className="transition-opacity duration-500 ease-in-out" key={currentIndex}>
-        <p className="text-gray-600 mb-4 italic text-lg">"{currentTestimonial.quote}"</p>
+        <p className="text-gray-200 mb-4 italic text-lg">"{currentTestimonial.quote}"</p>
         <div className="flex items-center">
-          <img src={currentTestimonial.imageUrl} alt={currentTestimonial.name} className="w-14 h-14 rounded-full mr-4 border-2 border-brand-secondary" />
+          <img src={currentTestimonial.imageUrl} alt={currentTestimonial.name} className="w-14 h-14 rounded-full mr-4 border-2 border-white/50" />
           <div>
-            <h4 className="font-bold text-brand-dark">{currentTestimonial.name}</h4>
+            <h4 className="font-bold text-white">{currentTestimonial.name}</h4>
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@ const Testimonials: React.FC = () => {
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${currentIndex === index ? 'bg-brand-primary' : 'bg-gray-300 hover:bg-gray-400'}`}
+            className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${currentIndex === index ? 'bg-white' : 'bg-white/50 hover:bg-white/75'}`}
             aria-label={`Go to testimonial ${index + 1}`}
           />
         ))}

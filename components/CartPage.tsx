@@ -2,32 +2,43 @@
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useCart } from '../contexts/CartContext';
-import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod, OrderStatus } from '../types';
+import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod, View } from '../types';
 import { supabase } from '../lib/supabase/client';
-import { ArrowLeftIcon, TrashIcon } from './Icons';
+import { TrashIcon } from './Icons';
 
 interface CartPageProps {
   profile: Profile | null;
   session: Session | null;
   onContinueShopping: () => void;
-  onPlaceOrder: (orderId: number) => void;
+  onNavigate: (view: View) => void;
 }
 
-const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShopping, onPlaceOrder }) => {
+const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShopping, onNavigate }) => {
   const { cart, removeFromCart, updateQuantity, clearCart, cartItemCount, subtotal, loyaltyDiscountValue, total, getPriceForQuantity } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
     fullName: '', phone: '', street: '', city: '', state: '', zip: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
+  const [paymentMethod, setPaymentMethod] = useState<string>('pay_on_delivery');
   const [acknowledge, setAcknowledge] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isWholesale = profile?.role === 'wholesale_buyer';
+
   useEffect(() => {
-    if (session?.user?.email) {
-      setDeliveryAddress(prev => ({ ...prev, fullName: prev.fullName || '' }));
+    // Pre-fill form for wholesale buyers from mock data for convenience
+    if (isWholesale) {
+        setDeliveryAddress({
+            fullName: 'Chidi Okonkwo (GoodHealth Pharmacy Ltd.)',
+            phone: '08012345678',
+            street: '123, Commerce Avenue',
+            city: 'Victoria Island',
+            state: 'Lagos',
+            zip: '101241'
+        });
+        setPaymentMethod('bank_transfer'); // Default wholesale to bank transfer
     }
-  }, [session]);
+  }, [isWholesale]);
   
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,7 +46,6 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
   };
 
   const isFormValid = () => {
-    // FIX: Add a type check to ensure `field` is a string before calling `.trim()`.
     return Object.values(deliveryAddress).every(field => typeof field === 'string' && field.trim() !== '') && acknowledge && cart.length > 0;
   };
   
@@ -48,62 +58,29 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
       setError(null);
       
       try {
-          // 1. Create the order record with 'ORDER_RECEIVED' status
-          const { data: orderData, error: orderError } = await supabase
-              .from('orders')
-              .insert({
-                  user_id: session.user.id,
-                  total_price: total,
-                  discount_applied: loyaltyDiscountValue,
-                  delivery_address: deliveryAddress,
-                  customer_details: { email: session.user.email, userId: session.user.id },
-                  status: 'ORDER_RECEIVED' // FIX: Correctly set initial status
-              })
-              .select()
-              .single();
-          
-          if (orderError) throw orderError;
-          const orderId = orderData.id;
-
-          // 2. Create the corresponding payment record
-          const paymentStatus: PaymentStatus = paymentMethod === 'pay_on_delivery' ? 'pay_on_delivery' : 'pending';
-          const { error: paymentError } = await supabase
-            .from('payments')
-            .insert({
-                order_id: orderId,
-                amount: total,
-                payment_method: paymentMethod,
-                payment_status: paymentStatus
-            });
-
-          if (paymentError) {
-              // If payment record fails, roll back the order creation
-              await supabase.from('orders').delete().eq('id', orderId);
-              throw paymentError;
-          }
-
-          // 3. Create the order items records
-          const orderItems = cart.map(item => ({
-              order_id: orderId,
-              product_id: item.product.id,
-              quantity: item.quantity,
-              unit_price: getPriceForQuantity(item)
-          }));
-
-          const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
-          if (itemsError) {
-              // Attempt to roll back order and payment creation if items fail
-              await supabase.from('payments').delete().eq('order_id', orderId);
-              await supabase.from('orders').delete().eq('id', orderId);
-              throw itemsError;
-          }
-          
-          // 4. Success: The order is now in the system awaiting admin action.
-          // The trigger `log_initial_order_status` will handle creating the history record.
+          // --- MOCK ORDER CREATION ---
+          // In a real app, this would be a series of Supabase calls.
+          // Here, we simulate the creation and generate a random ID.
+          const mockOrderId = Math.floor(1000 + Math.random() * 9000);
+          console.log(`Simulating order creation for user ${session.user.email}...`);
+          console.log({
+              user_id: session.user.id,
+              total_price: total,
+              payment_method: paymentMethod,
+              status: paymentMethod === 'bank_transfer' ? 'awaiting_confirmation' : 'pending'
+          });
+          await new Promise(res => setTimeout(res, 1000)); // Simulate network delay
+          console.log(`Mock Order #${mockOrderId} created.`);
+          // --------------------------
 
           clearCart();
-          onPlaceOrder(orderId);
+          
+          if (isWholesale) {
+            onNavigate({ name: 'invoicePreview', orderId: mockOrderId });
+          } else {
+             // For general public, go to standard success page.
+            onNavigate({ name: 'orderSuccess', orderId: mockOrderId });
+          }
 
       } catch (err: any) {
           setError(`Failed to place order: ${err.message}`);
@@ -112,6 +89,39 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
           setIsLoading(false);
       }
   };
+
+  const renderPaymentMethods = () => {
+    if (isWholesale) {
+        return (
+            <div className="space-y-3">
+                <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
+                    <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
+                    <div className="ml-3"><span className="font-semibold text-gray-800">Bank Transfer</span><p className="text-sm text-gray-500">Confirm order and receive bank details.</p></div>
+                </label>
+                <label className="flex items-center p-4 border rounded-md cursor-not-allowed bg-gray-100 opacity-60">
+                    <input type="radio" name="paymentMethod" value="online" checked={paymentMethod === 'online'} className="h-4 w-4" disabled/>
+                    <div className="ml-3"><span className="font-semibold text-gray-500">Pay Online (Card)</span><p className="text-sm text-gray-400">Coming Soon</p></div>
+                </label>
+            </div>
+        );
+    }
+
+    // General Public Payment Options
+    return (
+        <div className="space-y-3">
+            <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
+                <input type="radio" name="paymentMethod" value="pay_on_delivery" checked={paymentMethod === 'pay_on_delivery'} onChange={() => setPaymentMethod('pay_on_delivery')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
+                <div className="ml-3"><span className="font-semibold text-gray-800">Pay on Delivery</span><p className="text-sm text-gray-500">Pay with cash or card when your order arrives.</p></div>
+            </label>
+             <label className="flex items-center p-4 border rounded-md cursor-not-allowed bg-gray-100 opacity-60">
+                <input type="radio" name="paymentMethod" value="online" checked={paymentMethod === 'online'} className="h-4 w-4" disabled/>
+                <div className="ml-3"><span className="font-semibold text-gray-500">Online Payment</span><p className="text-sm text-gray-400">Card, Bank Transfer (Coming Soon)</p></div>
+            </label>
+        </div>
+    );
+  };
+
+  const submitButtonText = isWholesale ? 'Proceed to Confirmation' : 'Place Order';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -126,9 +136,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items & Delivery Form */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Cart Items */}
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4">Items ({cartItemCount})</h2>
                 <div className="space-y-4">
@@ -137,7 +145,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                             <img src={item.product.image_url} alt={item.product.name} className="w-20 h-20 object-cover rounded-md"/>
                             <div className="flex-grow">
                                 <h3 className="font-semibold">{item.product.name}</h3>
-                                <p className="text-sm text-gray-500">{item.product.dosage}</p>
+                                <p className="text-sm text-gray-500">{isWholesale ? item.product.wholesale_display_unit : item.product.dosage}</p>
                                 <p className="text-sm">Unit Price: ₦{getPriceForQuantity(item).toLocaleString()}</p>
                             </div>
                              <div className="flex items-center gap-2">
@@ -145,8 +153,9 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                                     type="number" 
                                     value={item.quantity}
                                     onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value, 10))}
-                                    min="1"
-                                    className="w-16 p-2 border rounded-md"
+                                    min={isWholesale ? item.product.min_order_quantity : 1}
+                                    step={isWholesale ? item.product.min_order_quantity : 1}
+                                    className="w-20 p-2 border rounded-md"
                                     aria-label={`Quantity for ${item.product.name}`}
                                 />
                             </div>
@@ -159,12 +168,11 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                 </div>
             </div>
 
-            {/* Delivery Details */}
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4">Delivery & Contact Information</h2>
                  {!session && <p className="text-red-600 bg-red-100 p-3 rounded-md mb-4">Please log in to place an order.</p>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input name="fullName" value={deliveryAddress.fullName} onChange={handleAddressChange} placeholder="Full Name" className="p-2 border rounded-md" disabled={!session} />
+                    <input name="fullName" value={deliveryAddress.fullName} onChange={handleAddressChange} placeholder="Full Name / Company Name" className="p-2 border rounded-md" disabled={!session} />
                     <input name="phone" value={deliveryAddress.phone} onChange={handleAddressChange} placeholder="Phone Number" className="p-2 border rounded-md" disabled={!session}/>
                     <input name="street" value={deliveryAddress.street} onChange={handleAddressChange} placeholder="Street Address" className="md:col-span-2 p-2 border rounded-md" disabled={!session} />
                     <input name="city" value={deliveryAddress.city} onChange={handleAddressChange} placeholder="City" className="p-2 border rounded-md" disabled={!session} />
@@ -174,7 +182,6 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
             </div>
           </div>
           
-          {/* Order Summary */}
           <div className="lg:col-span-1">
              <div className="bg-white p-6 rounded-lg shadow-md sticky top-28">
                 <h2 className="text-xl font-semibold mb-4 border-b pb-2">Order Summary</h2>
@@ -187,22 +194,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
 
                 <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-3">Payment Method</h3>
-                    <div className="space-y-3">
-                        <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
-                            <input type="radio" name="paymentMethod" value="pay_on_delivery" checked={paymentMethod === 'pay_on_delivery'} onChange={() => setPaymentMethod('pay_on_delivery')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
-                            <div className="ml-3">
-                                <span className="font-semibold text-gray-800">Pay on Delivery</span>
-                                <p className="text-sm text-gray-500">Pay with cash or card when your order arrives.</p>
-                            </div>
-                        </label>
-                        <label className="flex items-center p-4 border rounded-md cursor-not-allowed bg-gray-100 opacity-60">
-                            <input type="radio" name="paymentMethod" value="online" checked={paymentMethod === 'online'} className="h-4 w-4" disabled/>
-                            <div className="ml-3">
-                                <span className="font-semibold text-gray-500">Online Payment</span>
-                                <p className="text-sm text-gray-400">Card, Bank Transfer (Coming Soon)</p>
-                            </div>
-                        </label>
-                    </div>
+                    {renderPaymentMethods()}
                 </div>
 
                 <div className="mt-6">
@@ -219,7 +211,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                     disabled={!isFormValid() || isLoading || !session}
                     className="w-full mt-6 bg-brand-primary text-white font-bold py-3 rounded-md hover:bg-brand-secondary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                    {isLoading ? 'Placing Order...' : 'Place Order'}
+                    {isLoading ? 'Processing...' : submitButtonText}
                 </button>
              </div>
           </div>

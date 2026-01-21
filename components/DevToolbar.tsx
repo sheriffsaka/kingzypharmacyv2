@@ -1,47 +1,63 @@
 
 import React, { useState } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase/client';
 import { Profile } from '../types';
 
 interface DevToolbarProps {
     session: Session | null;
     profile: Profile | null;
+    onDevLogin: (profile: Profile) => void;
+    onDevLogout: () => void;
 }
 
-const testUsers = {
-    admin: { email: 'admin@kingzy.com', password: 'password123' },
-    logistics: { email: 'logistics@kingzy.com', password: 'password123' },
-    wholesale_approved: { email: 'wholesale@kingzy.com', password: 'password123' },
-    wholesale_pending: { email: 'pending.wholesale@kingzy.com', password: 'password123' },
-    buyer: { email: 'buyer@kingzy.com', password: 'password123' },
+const mockProfiles: Record<string, Profile> = {
+    admin: {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'admin@kingzy.com',
+        role: 'admin',
+        approval_status: 'approved',
+        created_at: new Date().toISOString(),
+        loyalty_discount_percentage: 5.0,
+    },
+    logistics: {
+        id: '00000000-0000-0000-0000-000000000002',
+        email: 'logistics@kingzy.com',
+        role: 'logistics',
+        approval_status: 'approved',
+        created_at: new Date().toISOString(),
+        loyalty_discount_percentage: 0,
+    },
+    wholesale_approved: {
+        id: '00000000-0000-0000-0000-000000000003',
+        email: 'wholesale@kingzy.com',
+        role: 'wholesale_buyer',
+        approval_status: 'approved',
+        created_at: new Date().toISOString(),
+        loyalty_discount_percentage: 10.0,
+    },
+    wholesale_pending: {
+        id: '00000000-0000-0000-0000-000000000004',
+        email: 'pending.wholesale@kingzy.com',
+        role: 'wholesale_buyer',
+        approval_status: 'pending',
+        created_at: new Date().toISOString(),
+        loyalty_discount_percentage: 0,
+    },
+    buyer: {
+        id: '00000000-0000-0000-0000-000000000005',
+        email: 'buyer@kingzy.com',
+        role: 'general_public',
+        approval_status: 'approved',
+        created_at: new Date().toISOString(),
+        loyalty_discount_percentage: 2.5,
+    },
 };
 
-const DevToolbar: React.FC<DevToolbarProps> = ({ session, profile }) => {
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
-
-    const handleLogin = async (userKey: keyof typeof testUsers) => {
-        setLoading(true);
-        setMessage(null);
-        await supabase.auth.signOut(); // Logout first
-        const { email, password } = testUsers[userKey];
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-            setMessage(`Login failed: ${error.message}. Ensure test users are seeded in the database.`);
-            setLoading(false);
-        } else {
-            // On success, reload the page to ensure all state is correctly initialized
-            window.location.reload();
-        }
-    };
+const DevToolbar: React.FC<DevToolbarProps> = ({ session, profile, onDevLogin, onDevLogout }) => {
     
-    const handleLogout = async () => {
-         setLoading(true);
-         await supabase.auth.signOut();
-         // Reload the page on logout for consistent behavior
-         window.location.reload();
+    const handleLogin = (userKey: keyof typeof mockProfiles) => {
+        const mockProfile = mockProfiles[userKey];
+        onDevLogin(mockProfile);
     };
 
     return (
@@ -56,15 +72,14 @@ const DevToolbar: React.FC<DevToolbarProps> = ({ session, profile }) => {
                      )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                     <span className="font-semibold mr-2">Login as:</span>
-                     <button onClick={() => handleLogin('admin')} disabled={loading} className="px-2 py-1 bg-red-500 rounded hover:bg-red-600 disabled:bg-gray-500">Admin</button>
-                     <button onClick={() => handleLogin('logistics')} disabled={loading} className="px-2 py-1 bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-500">Logistics</button>
-                     <button onClick={() => handleLogin('wholesale_approved')} disabled={loading} className="px-2 py-1 bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-500">Wholesaler (Approved)</button>
-                      <button onClick={() => handleLogin('wholesale_pending')} disabled={loading} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-600 disabled:bg-gray-500">Wholesaler (Pending)</button>
-                     <button onClick={() => handleLogin('buyer')} disabled={loading} className="px-2 py-1 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:bg-gray-500">Buyer</button>
-                     <button onClick={handleLogout} disabled={loading} className="px-2 py-1 bg-gray-600 rounded hover:bg-gray-700 disabled:bg-gray-500">Logout</button>
+                     <span className="font-semibold mr-2">Quick Login:</span>
+                     <button onClick={() => handleLogin('admin')} className="px-2 py-1 bg-red-500 rounded hover:bg-red-600">Admin</button>
+                     <button onClick={() => handleLogin('logistics')} className="px-2 py-1 bg-blue-500 rounded hover:bg-blue-600">Logistics</button>
+                     <button onClick={() => handleLogin('wholesale_approved')} className="px-2 py-1 bg-green-500 rounded hover:bg-green-600">Wholesaler (Approved)</button>
+                     <button onClick={() => handleLogin('wholesale_pending')} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-600">Wholesaler (Pending)</button>
+                     <button onClick={() => handleLogin('buyer')} className="px-2 py-1 bg-gray-200 text-black rounded hover:bg-gray-300">Buyer</button>
+                     {session && <button onClick={onDevLogout} className="px-2 py-1 bg-gray-600 rounded hover:bg-gray-700">Logout</button>}
                 </div>
-                {message && <div className="w-full text-center text-red-400 text-xs mt-1">{message}</div>}
             </div>
         </div>
     );

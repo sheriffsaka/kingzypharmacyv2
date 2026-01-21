@@ -13,6 +13,7 @@ import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/AdminDashboard';
 import WholesaleDashboard from './components/WholesaleDashboard';
 import LogisticsDashboard from './components/LogisticsDashboard';
+import BuyerDashboard from './components/BuyerDashboard';
 import Footer from './components/Footer';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import LabTests from './components/LabTests';
@@ -25,6 +26,8 @@ import ContactPage from './components/ContactPage';
 import FAQPage from './components/FAQPage';
 import TermsAndConditionsPage from './components/TermsAndConditionsPage';
 import DevToolbar from './components/DevToolbar';
+import InvoicePreviewPage from './components/InvoicePreviewPage';
+import PaymentInstructionsPage from './components/PaymentInstructionsPage';
 import { View, Profile, Category } from './types';
 import { supabase } from './lib/supabase/client';
 import { useCart } from './contexts/CartContext';
@@ -35,6 +38,11 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentView, setCurrentView] = useState<View>({ name: 'home' });
   const { cartItemCount, setProfileForCart } = useCart();
+
+  const handleNavigation = (view: View) => {
+      window.scrollTo(0, 0); // Scroll to top on every navigation change
+      setCurrentView(view);
+  }
 
   const fetchProfile = async (user: User): Promise<Profile | null> => {
     const { data, error } = await supabase
@@ -70,37 +78,29 @@ const App: React.FC = () => {
       if (data) setCategories(data);
     };
 
-    getSession();
+    // We only set up the real auth listener if not in a recognized dev/mock environment.
+    // For this tool, we assume the dev toolbar is always present, so we prioritize its functionality.
+    // getSession(); // This can cause issues with the mock login, so we let the toolbar drive state.
     fetchCategories();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
         const userProfile = await fetchProfile(session.user);
-
-        // Role-based routing after login
         if (userProfile) {
           switch (userProfile.role) {
-            case 'admin':
-              setCurrentView({ name: 'admin' });
-              break;
-            case 'logistics':
-              setCurrentView({ name: 'logistics' });
-              break;
-            case 'wholesale_buyer':
-              setCurrentView({ name: 'wholesale' });
-              break;
+            case 'admin': handleNavigation({ name: 'admin' }); break;
+            case 'logistics': handleNavigation({ name: 'logistics' }); break;
+            case 'wholesale_buyer': handleNavigation({ name: 'wholesale' }); break;
             default:
-              // If the user was on the auth page, redirect them to the home page.
               setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
           }
         } else {
-           // Fallback if profile somehow fails to load
            setCurrentView({ name: 'home' });
         }
       } else {
         setProfile(null);
-        setProfileForCart(null); // Clear profile in cart context on logout
+        setProfileForCart(null);
         setCurrentView({ name: 'home' });
       }
     });
@@ -109,16 +109,46 @@ const App: React.FC = () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
-  
-  const handleNavigation = (view: View) => {
-      window.scrollTo(0, 0); // Scroll to top on every navigation change
-      setCurrentView(view);
-  }
 
-  const handlePlaceOrder = (orderId: number) => {
-    setCurrentView({ name: 'orderSuccess', orderId });
+  const handleDevLogin = (mockProfile: Profile) => {
+    // Create a fake session object for the presentation
+    const mockSession: Session = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-refresh-token',
+      token_type: 'bearer',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: {
+        id: mockProfile.id,
+        email: mockProfile.email,
+        app_metadata: {},
+        user_metadata: { role: mockProfile.role },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      },
+    };
+    
+    setProfile(mockProfile);
+    setProfileForCart(mockProfile);
+    setSession(mockSession);
+
+    // Navigate to the correct dashboard
+    switch (mockProfile.role) {
+      case 'admin': handleNavigation({ name: 'admin' }); break;
+      case 'logistics': handleNavigation({ name: 'logistics' }); break;
+      case 'wholesale_buyer': handleNavigation({ name: 'wholesale' }); break;
+      case 'general_public': handleNavigation({ name: 'buyerDashboard' }); break;
+      default: handleNavigation({ name: 'home' });
+    }
   };
 
+  const handleDevLogout = () => {
+    setSession(null);
+    setProfile(null);
+    setProfileForCart(null);
+    handleNavigation({ name: 'home' });
+  };
+  
   const renderContent = () => {
     switch(currentView.name) {
       case 'home':
@@ -149,7 +179,7 @@ const App: React.FC = () => {
                   profile={profile}
                   session={session}
                   onContinueShopping={() => handleNavigation({ name: 'products' })}
-                  onPlaceOrder={handlePlaceOrder}
+                  onNavigate={handleNavigation}
                 />;
       case 'orderSuccess':
         return <OrderSuccessPage
@@ -164,11 +194,17 @@ const App: React.FC = () => {
       case 'auth':
         return <AuthPage />;
       case 'admin':
-        return profile?.role === 'admin' ? <AdminDashboard /> : <p className="text-center p-8">Access Denied</p>;
+        return profile?.role === 'admin' ? <AdminDashboard /> : <p className="text-center p-8">Access Denied. Please log in as an Admin.</p>;
       case 'wholesale':
-        return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied</p>;
+        return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied. Please log in as a Wholesale Buyer.</p>;
       case 'logistics':
-        return profile?.role === 'logistics' ? <LogisticsDashboard /> : <p className="text-center p-8">Access Denied</p>;
+        return profile?.role === 'logistics' ? <LogisticsDashboard /> : <p className="text-center p-8">Access Denied. Please log in as Logistics personnel.</p>;
+      case 'buyerDashboard':
+        return profile?.role === 'general_public' ? <BuyerDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied. Please log in to view your dashboard.</p>;
+      case 'invoicePreview':
+          return <InvoicePreviewPage orderId={currentView.orderId} onNavigate={handleNavigation} />;
+      case 'paymentInstructions':
+          return <PaymentInstructionsPage orderId={currentView.orderId} onNavigate={handleNavigation} />;
       case 'wholesale_public':
         return <WholesalePublicPage onNavigate={handleNavigation} />;
       case 'labTests':
@@ -212,7 +248,12 @@ const App: React.FC = () => {
       </main>
       <Footer onNavigate={handleNavigation} categories={categories} />
       <ScrollToTopButton />
-      <DevToolbar session={session} profile={profile} />
+      <DevToolbar 
+        session={session} 
+        profile={profile}
+        onDevLogin={handleDevLogin}
+        onDevLogout={handleDevLogout}
+      />
     </div>
   );
 };

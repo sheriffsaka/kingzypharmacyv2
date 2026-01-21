@@ -37,6 +37,15 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
     setDropdownOpen(false);
   }
 
+  const handleMyOrdersClick = () => {
+    if (profile?.role === 'general_public') {
+        onNavigate({ name: 'buyerDashboard' });
+    } else {
+        // Fallback for other roles or if profile is not loaded
+        onNavigate({ name: 'orders' });
+    }
+  };
+
   const renderAuthSection = () => {
     if (session) {
       return (
@@ -45,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
             <UserCircleIcon className="w-8 h-8"/>
             <span className="text-sm hidden lg:inline">{session.user.email}</span>
           </div>
-           <button onClick={() => onNavigate({ name: 'orders' })} className="font-semibold text-white hover:text-brand-secondary transition-colors text-sm">
+           <button onClick={handleMyOrdersClick} className="font-semibold text-white hover:text-brand-secondary transition-colors text-sm">
                 My Orders
             </button>
           <button 
@@ -158,7 +167,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                                 <UserCircleIcon className="w-8 h-8"/>
                                 <span className="text-sm">{session.user.email}</span>
                             </div>
-                            <button onClick={() => handleMobileNav({ name: 'orders'})} className={navButtonClasses}>My Orders</button>
+                            <button onClick={() => { handleMyOrdersClick(); setIsMobileMenuOpen(false); }} className={navButtonClasses}>My Orders</button>
                             <button 
                                 onClick={() => { handleLogout(); setIsMobileMenuOpen(false);}} 
                                 className={`${navButtonClasses} flex items-center space-x-2`}

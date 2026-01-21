@@ -42,13 +42,18 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 
 -- 4. Create helper functions to check roles (FIX for RLS recursion)
+-- This version reads the role from the JWT, avoiding table access and recursion issues.
 CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN RETURN EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'); END; $$;
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN 
+  RETURN auth.jwt()->'raw_user_meta_data'->>'role' = 'admin';
+END; $$;
 
 CREATE OR REPLACE FUNCTION public.is_logistics()
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN RETURN EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'logistics'); END; $$;
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN 
+  RETURN auth.jwt()->'raw_user_meta_data'->>'role' = 'logistics';
+END; $$;
 
 
 -- 5. Enable RLS and define policies for profiles table
