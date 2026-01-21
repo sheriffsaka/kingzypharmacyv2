@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase/client';
-import { Product, StockStatus } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Product, StockStatus, Category } from '../types';
 import { XIcon } from './Icons';
+import { productsData } from '../data/products';
+import { categoriesData } from '../data/categories';
 
 const AdminInventoryManagement: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -13,55 +14,38 @@ const AdminInventoryManagement: React.FC = () => {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
 
-    const fetchProducts = useCallback(async () => {
+    useEffect(() => {
         setLoading(true);
         setError(null);
         try {
-            const { data, error: fetchError } = await supabase
-                .from('products')
-                .select('*, categories(name)')
-                .order('name', { ascending: true });
-
-            if (fetchError) throw fetchError;
-            
-            const transformedData = (data || []).map((p: any) => ({
-                ...p,
-                categories: Array.isArray(p.categories) ? p.categories[0] : p.categories,
-            }));
-            setProducts(transformedData as Product[]);
-
+            // Enrich product data with category names from static data
+            const enrichedProducts = productsData.map(p => {
+                const category = categoriesData.find(c => c.id === p.category_id);
+                return {
+                    ...p,
+                    categories: category,
+                };
+            });
+            setProducts(enrichedProducts as Product[]);
         } catch (err: any) {
-            setError(`Failed to fetch products: ${err.message}`);
+            setError(`Failed to load products: ${err.message}`);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    const handleStatusChange = async (productId: number, newStatus: StockStatus) => {
+    const handleStatusChange = (productId: number, newStatus: StockStatus) => {
         setUpdating(prev => ({ ...prev, [productId]: true }));
-        try {
-            const { error: updateError } = await supabase
-                .from('products')
-                .update({ stock_status: newStatus })
-                .eq('id', productId);
-            
-            if (updateError) throw updateError;
-
+        // Simulate async update for UI feedback
+        setTimeout(() => {
             setProducts(prevProducts =>
                 prevProducts.map(p => 
                     p.id === productId ? { ...p, stock_status: newStatus } : p
                 )
             );
-
-        } catch (err: any) {
-            alert(`Error updating stock status: ${err.message}`);
-        } finally {
+            alert(`(Mock) Stock status for product #${productId} updated to '${newStatus}'.`);
             setUpdating(prev => ({ ...prev, [productId]: false }));
-        }
+        }, 300);
     };
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +72,7 @@ const AdminInventoryManagement: React.FC = () => {
                 updatedProduct.image_url = imagePreview; 
                 alert(`(Mock) Image "${imageFile.name}" uploaded and product #${editingProduct.id} updated successfully.`);
             } else {
-                 alert(`Product #${editingProduct.id} updated successfully (mock).`);
+                 alert(`(Mock) Product #${editingProduct.id} updated successfully.`);
             }
             
             setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
