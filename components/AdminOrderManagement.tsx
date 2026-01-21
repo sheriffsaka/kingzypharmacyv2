@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Order, Profile, OrderItem, Product } from '../types';
+import { Order, Profile, OrderItem, Product, PaymentStatus } from '../types';
 import { EyeIcon, XIcon } from './Icons';
 
 // --- MOCK DATA FOR PRESENTATION ---
@@ -83,7 +83,8 @@ const AdminOrderManagement: React.FC = () => {
         setTimeout(() => {
             setOrders(prevOrders => prevOrders.map(order => {
                 if (order.id === orderId) {
-                    const updatedPayments = order.payments ? [{ ...order.payments[0], payment_status: 'paid' }] : [];
+                    // FIX: Explicitly cast 'paid' to PaymentStatus to prevent type widening to string.
+                    const updatedPayments = order.payments ? [{ ...order.payments[0], payment_status: 'paid' as PaymentStatus }] : [];
                     return { ...order, payments: updatedPayments };
                 }
                 return order;

@@ -1,4 +1,3 @@
-
 export interface Category {
   id: number;
   name: string;
@@ -50,7 +49,8 @@ export type View =
   | { name: 'home' | 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'wholesale_public' | 'contact' | 'faq' | 'terms' | 'logistics' | 'buyerDashboard' }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number }
-  | { name: 'invoicePreview' | 'paymentInstructions', orderId: number };
+  | { name: 'invoicePreview' | 'paymentInstructions', orderId: number }
+  | { name: 'blogDetail', articleId: string };
 
 
 // Auth Types

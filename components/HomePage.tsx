@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { Product, Profile, Category, View } from '../types';
-import { supabase } from '../lib/supabase/client';
 import { ArrowRightIcon } from './Icons';
 import HeroCarousel from './HeroCarousel';
 import DealsOfTheDay from './DealsOfTheDay';
@@ -11,6 +9,8 @@ import DownloadApp from './DownloadApp';
 import ProductList from './ProductList';
 import CategoryCard from './CategoryCard';
 import HealthArticles from './HealthArticles';
+import { articles } from '../data/articles';
+import { productsData } from '../data/products';
 
 interface HomePageProps {
   profile: Profile | null;
@@ -20,60 +20,23 @@ interface HomePageProps {
   onSelectCategory: (categoryId: number | null) => void;
 }
 
-const articles = [
-  {
-    title: "Understanding Common Pain Relievers",
-    summary: "Learn the difference between Paracetamol and Ibuprofen, their uses, and when to take them for effective and safe pain management.",
-    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673681/commonpainrelievers_oppbhh.jpg",
-    link: "#"
-  },
-  {
-    title: "The Importance of Vitamin D",
-    summary: "Discover why Vitamin D is crucial for bone health, immune function, and overall well-being, especially during seasons with less sun exposure.",
-     imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673688/vitaminD2_n8ylyp.jpg",
-    link: "#"
-  },
-  {
-    title: "Tips for Managing Seasonal Allergies",
-    summary: "Don't let allergies ruin your season. Here are some effective tips and remedies to help you manage symptoms and breathe easier.",
-    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673682/seasnalallegies_ercnva.jpg",
-    link: "#"
-  }
-];
-
 const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, onProductSelect, onSelectCategory }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, name, description, category_id, dosage, prices, stock_status, image_url, min_order_quantity, categories(id, name, description)')
-          .limit(10); // Fetch 10 products for the page
-        
-        if (error) throw error;
-        const transformedData = (data || []).map((p: any) => ({
-          ...p,
-          categories: Array.isArray(p.categories) ? p.categories[0] : p.categories,
-        }));
-        setProducts(transformedData as Product[]);
-      } catch (err: any) {
-        setError('Failed to fetch product data.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
+    setLoading(true);
+    // Enrich product data with category information
+    const enrichedProducts = productsData.map(p => ({
+      ...p,
+      categories: categories.find(c => c.id === p.category_id)
+    }));
+    setProducts(enrichedProducts);
+    setLoading(false);
+  }, [categories]);
 
   const dealProduct = products.find(p => p.stock_status === 'in_stock');
-  const previewProducts = products; // Use all 10 fetched products
+  const previewProducts = products.slice(0, 10); // Take the first 10 for the homepage
 
   return (
     <div className="bg-white">
@@ -84,8 +47,7 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
           <div className="container mx-auto px-4">
               <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Our Products</h2>
                {loading && <p className="text-center">Loading products...</p>}
-               {error && <p className="text-center text-red-500">{error}</p>}
-               {!loading && !error && (
+               {!loading && (
                    <ProductList 
                        products={previewProducts}
                        profile={profile}
@@ -110,7 +72,7 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
       {/* Combined Category and Testimonials Section */}
       <section className="py-16 bg-gradient-to-b from-blue-50 to-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
             {/* Categories */}
             <div>
               <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Shop by Category</h2>
@@ -122,7 +84,7 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
             </div>
 
             {/* Testimonials */}
-            <div>
+            <div className="flex flex-col">
               <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">What Our Customers Say</h2>
               <Testimonials />
             </div>
@@ -133,8 +95,8 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
       {/* Health Articles Section */}
       <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
-              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Health Articles</h2>
-              <HealthArticles articles={articles} />
+              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Health Insights</h2>
+              <HealthArticles articles={articles} onNavigate={onNavigate} />
           </div>
       </section>
 

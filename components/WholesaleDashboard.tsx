@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Profile, Product, View, Order, OrderStatus, OrderStatusHistory, OrderItem, Payment } from '../types';
-// import { supabase } from '../lib/supabase/client'; // MOCK: Temporarily disabled for presentation
 import ProductList from './ProductList';
 import { SearchIcon, XIcon, CloudUploadIcon } from './Icons';
 import OrderTrackingTimeline from './OrderTrackingTimeline';
+import { mockWholesaleProducts } from '../data/wholesaleProducts';
 
 // --- MOCK DATA FOR PRESENTATION ---
-const mockWholesaleProducts: Product[] = [
-    { id: 1, name: 'Paracetamol (Bulk)', description: 'Effective relief from pain and fever.', category_id: 1, dosage: '500mg, 1000 tablets', prices: { retail: 10000, wholesale_tiers: [{min_quantity: 10, price: 8000}, {min_quantity: 50, price: 7500}] }, stock_status: 'in_stock', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png', min_order_quantity: 10, wholesale_display_unit: 'Jar of 1000' },
-    { id: 2, name: 'Ibuprofen (Case)', description: 'Anti-inflammatory tablets for various pains.', category_id: 1, dosage: '200mg, 48 packs', prices: { retail: 25000, wholesale_tiers: [{min_quantity: 5, price: 22000}, {min_quantity: 20, price: 20000}] }, stock_status: 'in_stock', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png', min_order_quantity: 5, wholesale_display_unit: 'Case of 48' },
-    { id: 3, name: 'Vitamin C Effervescent (Bulk)', description: 'High-strength Vitamin C to support your immune system.', category_id: 2, dosage: '1000mg, 200 tablets', prices: { retail: 30000, wholesale_tiers: [{min_quantity: 10, price: 25000}, {min_quantity: 40, price: 22500}] }, stock_status: 'low_stock', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr10_ogxr0t.png', min_order_quantity: 10, wholesale_display_unit: 'Pack of 200' },
-    { id: 4, name: 'Gaviscon Double Action (Carton)', description: 'Effective relief from heartburn and indigestion.', category_id: 4, dosage: '300ml, 12 Bottles', prices: { retail: 72000, wholesale_tiers: [{min_quantity: 2, price: 66000}, {min_quantity: 10, price: 60000}] }, stock_status: 'in_stock', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819812/pr2_b8czjp.png', min_order_quantity: 2, wholesale_display_unit: 'Carton of 12' },
-];
-
 const initialWholesaleUserDetails = {
     companyName: 'GoodHealth Pharmacy Ltd.',
     contactPerson: 'Chidi Okonkwo',
@@ -31,7 +24,6 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         discount_applied: 15000,
         delivery_address: { fullName: 'Chidi Okonkwo', street: '123, Commerce Avenue', city: 'Lagos', state: 'Lagos', zip: '101241', phone: '08012345678' },
         customer_details: { email: 'wholesale@kingzy.com', userId: '00000000-0000-0000-0000-000000000003' },
-        // FIX: Completed mock payment data to satisfy the 'Payment' type.
         payments: [{ id: 1, order_id: 202401, payment_method: 'online', amount: 150000, created_at: new Date(Date.now() - 86400000 * 2).toISOString(), payment_status: 'paid' }],
         order_items: [
             { id: 10, order_id: 202401, product_id: 4, quantity: 1, unit_price: 66000, products: { name: 'Gaviscon Double Action (Carton)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819812/pr2_b8czjp.png' } },
@@ -39,9 +31,6 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         ] as any,
         order_status_history: [
             { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date(Date.now() - 86400000 * 2).toISOString(), updated_by: 'user' },
-            { id: 2, status: 'PROCESSING', updated_at: new Date(Date.now() - 86400000 * 1.9).toISOString(), updated_by: 'admin' },
-            { id: 3, status: 'DISPATCHED', updated_at: new Date(Date.now() - 86400000 * 1.5).toISOString(), updated_by: 'logistics' },
-            { id: 4, status: 'IN_TRANSIT', updated_at: new Date(Date.now() - 86400000 * 1).toISOString(), updated_by: 'logistics' },
             { id: 5, status: 'DELIVERED', updated_at: new Date(Date.now() - 86400000 * 0.5).toISOString(), updated_by: 'logistics' },
         ]
     },
@@ -49,12 +38,11 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         id: 202402,
         user_id: '00000000-0000-0000-0000-000000000003',
         created_at: new Date().toISOString(), // Today
-        status: 'ORDER_RECEIVED',
+        status: 'PROCESSING',
         total_price: 220000,
         discount_applied: 22000,
         delivery_address: { fullName: 'Chidi Okonkwo', street: '123, Commerce Avenue', city: 'Lagos', state: 'Lagos', zip: '101241', phone: '08012345678' },
         customer_details: { email: 'wholesale@kingzy.com', userId: '00000000-0000-0000-0000-000000000003' },
-        // FIX: Completed mock payment data to satisfy the 'Payment' type.
         payments: [{ id: 2, order_id: 202402, payment_method: 'online', amount: 220000, created_at: new Date().toISOString(), payment_status: 'awaiting_confirmation' }],
         order_items: [
              { id: 12, order_id: 202402, product_id: 1, quantity: 20, unit_price: 8000, products: { name: 'Paracetamol (Bulk)', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png' } },
@@ -62,12 +50,20 @@ const mockWholesaleOrders: (Order & {order_status_history: OrderStatusHistory[],
         ] as any,
         order_status_history: [
             { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: 'user' },
+            { id: 2, status: 'PROCESSING', updated_at: new Date(Date.now() - 3600000).toISOString(), updated_by: 'admin' },
         ]
     }
 ];
+
+const mockWholesaleActivityLog = [
+    { action: 'You placed wholesale Order #202402', time: '45m ago' },
+    { action: 'Payment for Order #202401 was confirmed', time: '2d ago' },
+    { action: 'Your delivery for Order #202401 is complete', time: '1d ago' },
+    { action: 'New product "Ibuprofen (Case)" added to catalog', time: '3d ago' },
+];
 // ------------------------------------
 
-type DashboardTab = 'catalog' | 'profile' | 'orders';
+type DashboardTab = 'overview' | 'catalog' | 'orders' | 'profile';
 
 interface WholesaleDashboardProps {
   profile: Profile;
@@ -75,7 +71,7 @@ interface WholesaleDashboardProps {
 }
 
 const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<DashboardTab>('catalog');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   
   if (profile.approval_status !== 'approved') {
     return (
@@ -93,17 +89,22 @@ const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavi
   
   const renderContent = () => {
     switch (activeTab) {
+        case 'overview': return <WholesaleDashboardOverview />;
         case 'catalog': return <ProductCatalog onNavigate={onNavigate} profile={profile} />;
-        case 'profile': return <MyProfile profile={profile} />;
         case 'orders': return <OrderHistory onProductSelect={(productId) => onNavigate({ name: 'productDetail', productId })} />;
-        default: return <ProductCatalog onNavigate={onNavigate} profile={profile} />;
+        case 'profile': return <MyProfile profile={profile} />;
+        default: return <WholesaleDashboardOverview />;
     }
   }
 
   const TabButton: React.FC<{tab: DashboardTab, label: string}> = ({tab, label}) => (
     <button
         onClick={() => setActiveTab(tab)}
-        className={`px-4 py-2 font-semibold rounded-md transition-colors ${activeTab === tab ? 'bg-brand-primary text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+        className={`px-4 py-2 font-semibold transition-colors text-sm rounded-t-lg border-b-2 ${
+            activeTab === tab 
+            ? 'text-brand-primary border-brand-primary' 
+            : 'text-gray-500 border-transparent hover:text-brand-dark hover:border-gray-300'
+        }`}
     >
         {label}
     </button>
@@ -111,11 +112,15 @@ const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavi
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-brand-dark mb-6">Wholesale Dashboard</h1>
-      <div className="flex space-x-2 border-b mb-6">
-        <TabButton tab="catalog" label="Product Catalog" />
-        <TabButton tab="orders" label="My Orders" />
-        <TabButton tab="profile" label="My Profile" />
+      <h1 className="text-3xl font-bold text-brand-dark mb-2">Wholesale Dashboard</h1>
+       <p className="text-gray-600 mb-6">Welcome! Manage your wholesale orders and account details here.</p>
+      <div className="border-b border-gray-200 mb-6">
+         <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+            <TabButton tab="overview" label="Overview" />
+            <TabButton tab="catalog" label="Product Catalog" />
+            <TabButton tab="orders" label="My Orders" />
+            <TabButton tab="profile" label="My Profile" />
+        </nav>
       </div>
       <div>
         {renderContent()}
@@ -123,6 +128,44 @@ const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavi
     </div>
   );
 };
+
+const WholesaleDashboardOverview: React.FC = () => {
+    const metrics = [
+        { label: 'Total Orders', value: mockWholesaleOrders.length },
+        { label: 'Awaiting Payment', value: mockWholesaleOrders.filter(o => o.payments?.[0].payment_status === 'awaiting_confirmation').length, color: 'text-yellow-600' },
+        { label: 'Pending Deliveries', value: mockWholesaleOrders.filter(o => ['PROCESSING', 'DISPATCHED', 'IN_TRANSIT'].includes(o.status)).length, color: 'text-purple-600' },
+        { label: 'Completed Orders', value: mockWholesaleOrders.filter(o => o.status === 'DELIVERED').length, color: 'text-green-600' },
+    ];
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {metrics.map(metric => (
+                        <div key={metric.label} className="bg-white p-6 rounded-lg shadow-md border">
+                            <p className="text-sm font-medium text-gray-500">{metric.label}</p>
+                            <p className={`text-3xl font-bold text-brand-dark mt-1 ${metric.color || ''}`}>{metric.value}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+             <div className="bg-white p-6 rounded-lg shadow-md border">
+                <h3 className="text-xl font-semibold mb-4 text-brand-dark">Recent Activity</h3>
+                <ul className="divide-y divide-gray-200">
+                    {mockWholesaleActivityLog.map((log, index) => (
+                        <li key={index} className="py-3 flex justify-between items-center">
+                            <div>
+                                <p className="text-sm text-gray-800">{log.action}</p>
+                            </div>
+                            <span className="text-xs text-gray-400">{log.time}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
+};
+
 
 const ProductCatalog: React.FC<{onNavigate: (view: View) => void, profile: Profile}> = ({ onNavigate, profile }) => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -132,11 +175,10 @@ const ProductCatalog: React.FC<{onNavigate: (view: View) => void, profile: Profi
 
     useEffect(() => {
         setLoading(true);
-        setTimeout(() => {
-            setProducts(mockWholesaleProducts);
-            setFilteredProducts(mockWholesaleProducts);
-            setLoading(false);
-        }, 500);
+        // Load data from the static file
+        setProducts(mockWholesaleProducts);
+        setFilteredProducts(mockWholesaleProducts);
+        setLoading(false);
     }, []);
 
     useEffect(() => {
@@ -147,16 +189,16 @@ const ProductCatalog: React.FC<{onNavigate: (view: View) => void, profile: Profi
     }, [searchQuery, products]);
     
     return (
-        <div>
+        <div className="bg-white p-6 rounded-lg shadow-md border">
              <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-2xl font-bold text-brand-dark">Wholesale Product Catalog</h2>
+                <h2 className="text-xl font-semibold text-brand-dark">Wholesale Product Catalog</h2>
                 <div className="relative w-full md:w-auto">
                 <input
                     type="search"
                     placeholder="Search wholesale products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full md:w-80 p-3 pl-10 rounded-full border-2 border-gray-200 focus:outline-none focus:border-brand-primary"
+                    className="w-full md:w-80 p-3 pl-10 rounded-full border border-gray-300 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
                 />
                 <SearchIcon className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
@@ -201,7 +243,7 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
         <>
             <div className="bg-white p-6 rounded-lg shadow-md border">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-brand-dark">Account Information</h2>
+                    <h2 className="text-xl font-semibold text-brand-dark">Account Information</h2>
                     <button onClick={handleEdit} className="font-bold py-2 px-4 rounded-md bg-brand-primary text-white hover:bg-brand-secondary">Edit Profile</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -252,9 +294,6 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
     const [uploadedPops, setUploadedPops] = useState<Set<number>>(new Set());
 
     const handleUploadPop = (orderId: number) => {
-        // MOCK: This simulates telling the backend the POP has been uploaded.
-        // In a real app, this would upload the file and update a record.
-        // Here, we just update local state for UI feedback.
         alert('Proof of payment uploaded successfully! Admin will now verify.');
         setUploadedPops(prev => new Set(prev).add(orderId));
         setUploadingPopFor(null);
@@ -277,7 +316,7 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
     return (
         <>
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-brand-dark">My Orders</h2>
+                <h2 className="text-xl font-bold text-brand-dark">My Orders</h2>
                 {orders.length === 0 ? (
                     <p>You have not placed any orders yet.</p>
                 ) : (

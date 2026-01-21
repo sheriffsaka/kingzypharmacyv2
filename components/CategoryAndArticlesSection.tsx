@@ -1,36 +1,16 @@
-
 import React from 'react';
-import { Category } from '../types';
+import { Category, View } from '../types';
 import CategoryCard from './CategoryCard';
 import HealthArticles from './HealthArticles';
+import { articles } from '../data/articles';
 
 interface CategoryAndArticlesSectionProps {
     categories: Category[];
     onSelectCategory: (id: number) => void;
+    onNavigate: (view: View) => void;
 }
 
-const articles = [
-  {
-    title: "Understanding Common Pain Relievers",
-    summary: "Learn the difference between Paracetamol and Ibuprofen...",
-    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673681/commonpainrelievers_oppbhh.jpg",
-    link: "#"
-  },
-  {
-    title: "The Importance of Vitamin D",
-    summary: "Discover why Vitamin D is crucial for bone health and immunity...",
-     imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673688/vitaminD2_n8ylyp.jpg",
-    link: "#"
-  },
-  {
-    title: "Tips for Managing Seasonal Allergies",
-    summary: "Don't let allergies ruin your season. Here are some effective tips...",
-    imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1768673682/seasnalallegies_ercnva.jpg",
-    link: "#"
-  }
-];
-
-const CategoryAndArticlesSection: React.FC<CategoryAndArticlesSectionProps> = ({ categories, onSelectCategory }) => {
+const CategoryAndArticlesSection: React.FC<CategoryAndArticlesSectionProps> = ({ categories, onSelectCategory, onNavigate }) => {
     // Take only the first 5 categories to feature
     const featuredCategories = categories.slice(0, 5);
 
@@ -51,7 +31,7 @@ const CategoryAndArticlesSection: React.FC<CategoryAndArticlesSectionProps> = ({
                     {/* Health Articles Section */}
                     <div>
                         <h2 className="text-3xl font-bold text-brand-dark mb-6">Health Articles</h2>
-                        <HealthArticles articles={articles} />
+                        <HealthArticles articles={articles} onNavigate={onNavigate} />
                     </div>
                 </div>
             </div>

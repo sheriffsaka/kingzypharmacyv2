@@ -5,41 +5,37 @@ import { EyeIcon, XIcon } from './Icons';
 // --- MOCK DATA FOR PRESENTATION ---
 const mockAssignedOrders: Order[] = [
     { 
-        id: 102, 
-        user_id: 'user-2-uuid', 
-        created_at: new Date(Date.now() - 86400000).toISOString(), 
+        id: 102, user_id: 'user-2-uuid', created_at: new Date(Date.now() - 86400000).toISOString(), 
         status: 'PROCESSING', // This is a new, unaccepted assignment
-        total_price: 25000, 
-        discount_applied: 500, 
+        total_price: 25000, discount_applied: 500, 
         delivery_address: { fullName: 'Jane Smith', phone: '09087654321', street: '456 Oak Ave', city: 'Abuja', state: 'FCT', zip: '900001' }, 
         customer_details: { email: 'wholesale@kingzy.com', userId: 'user-2-uuid' },
-        order_items: [
-             { id: 1, order_id: 102, product_id: 1, quantity: 10, unit_price: 2200, products: { name: 'Ibuprofen', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png' } },
-        ] as (OrderItem & { products: Pick<Product, 'name' | 'image_url'>})[],
+        order_items: [ { id: 1, order_id: 102, product_id: 1, quantity: 10, unit_price: 2200, products: { name: 'Ibuprofen', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png' } }, ] as any,
     },
     { 
-        id: 205, 
-        user_id: 'user-5-uuid', 
-        created_at: new Date(Date.now() - 96400000).toISOString(), 
+        id: 205, user_id: 'user-5-uuid', created_at: new Date(Date.now() - 96400000).toISOString(), 
         status: 'DISPATCHED', // This is an active delivery
-        total_price: 50000, 
-        discount_applied: 1000, 
+        total_price: 50000, discount_applied: 1000, 
         delivery_address: { fullName: 'Bello Musa', phone: '07011112222', street: '111 Sahel Rd', city: 'Kano', state: 'Kano', zip: '700001' }, 
         customer_details: { email: 'bello.m@example.com', userId: 'user-5-uuid' } 
     },
     { 
-        id: 301, 
-        user_id: 'user-6-uuid', 
-        created_at: new Date(Date.now() - 126400000).toISOString(), 
+        id: 301, user_id: 'user-6-uuid', created_at: new Date(Date.now() - 126400000).toISOString(), 
         status: 'IN_TRANSIT', // This is an active delivery
-        total_price: 18000, 
-        discount_applied: 0, 
+        total_price: 18000, discount_applied: 0, 
         delivery_address: { fullName: 'Grace Akpan', phone: '08122223333', street: '222 Palm St', city: 'Calabar', state: 'Cross River', zip: '540001' }, 
         customer_details: { email: 'grace.a@example.com', userId: 'user-6-uuid' },
-         order_items: [
+        order_items: [
              { id: 2, order_id: 301, product_id: 3, quantity: 2, unit_price: 4000, products: { name: 'Cetirizine Hydrochloride', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819815/pr8_x30k6m.png' } },
              { id: 3, order_id: 301, product_id: 4, quantity: 1, unit_price: 6500, products: { name: 'Gaviscon Double Action', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819812/pr2_b8czjp.png' } },
-        ] as (OrderItem & { products: Pick<Product, 'name' | 'image_url'>})[],
+        ] as any,
+    },
+     { 
+        id: 302, user_id: 'user-7-uuid', created_at: new Date(Date.now() - 3*86400000).toISOString(), 
+        status: 'DELIVERED', // Completed
+        total_price: 9500, discount_applied: 0, 
+        delivery_address: { fullName: 'John Doe', phone: '08122223333', street: '123 Main St', city: 'Lagos', state: 'Lagos', zip: '100001' }, 
+        customer_details: { email: 'john.d@example.com', userId: 'user-7-uuid' } 
     },
 ];
 
@@ -48,17 +44,28 @@ const initialLogisticsUserDetails = {
     phone: '08011223344',
     vehicleId: 'TRK-001'
 };
+
+const mockLogisticsActivityLog = [
+    { action: 'You accepted assignment for Order #102', time: '5m ago' },
+    { action: 'Order #301 status updated to IN_TRANSIT', time: '2h ago' },
+    { action: 'Delivery for Order #302 completed', time: '1d ago' },
+    { action: 'New assignment received for Order #102 (Abuja)', time: '2d ago' },
+];
 // ------------------------------------
 
-type LogisticsTab = 'assignments' | 'profile';
+type LogisticsTab = 'overview' | 'assignments' | 'profile';
 
 const LogisticsDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<LogisticsTab>('assignments');
+    const [activeTab, setActiveTab] = useState<LogisticsTab>('overview');
 
     const TabButton = ({ tab, label }: { tab: LogisticsTab, label: string }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-semibold rounded-md transition-colors ${activeTab === tab ? 'bg-brand-primary text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            className={`px-4 py-2 font-semibold transition-colors text-sm rounded-t-lg border-b-2 ${
+                activeTab === tab 
+                ? 'text-brand-primary border-brand-primary' 
+                : 'text-gray-500 border-transparent hover:text-brand-dark hover:border-gray-300'
+            }`}
         >
             {label}
         </button>
@@ -66,21 +73,63 @@ const LogisticsDashboard: React.FC = () => {
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'overview': return <LogisticsDashboardOverview />;
             case 'assignments': return <MyAssignments />;
             case 'profile': return <MyProfile />;
-            default: return <MyAssignments />;
+            default: return <LogisticsDashboardOverview />;
         }
     };
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-brand-dark mb-6">Logistics Dashboard</h1>
-            <div className="flex space-x-2 border-b mb-6">
-                <TabButton tab="assignments" label="My Assignments" />
-                <TabButton tab="profile" label="My Profile" />
+            <h1 className="text-3xl font-bold text-brand-dark mb-2">Logistics Dashboard</h1>
+            <p className="text-gray-600 mb-6">Manage your assigned deliveries and update order statuses.</p>
+
+             <div className="border-b border-gray-200 mb-6">
+                <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+                    <TabButton tab="overview" label="Overview" />
+                    <TabButton tab="assignments" label="My Assignments" />
+                    <TabButton tab="profile" label="My Profile" />
+                </nav>
             </div>
             <div>
                 {renderContent()}
+            </div>
+        </div>
+    );
+};
+
+const LogisticsDashboardOverview: React.FC = () => {
+    const metrics = [
+        { label: 'Total Assigned Orders', value: mockAssignedOrders.length },
+        { label: 'Pending Acceptance', value: mockAssignedOrders.filter(o => o.status === 'PROCESSING').length, color: 'text-yellow-600' },
+        { label: 'In Transit', value: mockAssignedOrders.filter(o => o.status === 'IN_TRANSIT').length, color: 'text-purple-600' },
+        { label: 'Completed Deliveries', value: mockAssignedOrders.filter(o => o.status === 'DELIVERED').length, color: 'text-green-600' },
+    ];
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {metrics.map(metric => (
+                        <div key={metric.label} className="bg-white p-6 rounded-lg shadow-md border">
+                            <p className="text-sm font-medium text-gray-500">{metric.label}</p>
+                            <p className={`text-3xl font-bold text-brand-dark mt-1 ${metric.color || ''}`}>{metric.value}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+             <div className="bg-white p-6 rounded-lg shadow-md border">
+                <h3 className="text-xl font-semibold mb-4 text-brand-dark">Recent Activity</h3>
+                <ul className="divide-y divide-gray-200">
+                    {mockLogisticsActivityLog.map((log, index) => (
+                        <li key={index} className="py-3 flex justify-between items-center">
+                            <div>
+                                <p className="text-sm text-gray-800">{log.action}</p>
+                            </div>
+                            <span className="text-xs text-gray-400">{log.time}</span>
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     );
@@ -94,23 +143,18 @@ const MyAssignments: React.FC = () => {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     const handleAccept = (orderId: number) => {
-        // MOCK: In a real app, you might just update the UI or confirm with the backend.
-        // Here, we can just provide feedback.
         alert(`Order #${orderId} accepted. You can now update its delivery status.`);
-        // No status change needed as 'PROCESSING' is the accepted state
     };
 
     const handleReject = (orderId: number) => {
         if (confirm("Are you sure you want to reject this assignment? It will be returned to the admin's queue.")) {
-            // MOCK: Remove the order from this user's view.
             setAssignedOrders(prev => prev.filter(o => o.id !== orderId));
             alert(`Order #${orderId} rejected and returned to admin for reassignment.`);
         }
     };
 
-    const handleStatusUpdate = async (orderId: number, newStatus: OrderStatus, note?: string) => {
+    const handleStatusUpdate = async (orderId: number, newStatus: OrderStatus) => {
         setUpdating(prev => ({...prev, [orderId]: true}));
-        
         setTimeout(() => {
             setAssignedOrders(prevOrders => prevOrders.map(order => 
                 order.id === orderId ? { ...order, status: newStatus } : order
@@ -129,7 +173,6 @@ const MyAssignments: React.FC = () => {
     return (
         <>
             <div className="space-y-8">
-                {/* New Assignments Section */}
                 <div className="bg-white p-6 rounded-lg shadow-md border">
                     <h2 className="text-xl font-semibold mb-4 text-yellow-600">New Assignments (Pending Action)</h2>
                     {newAssignments.length > 0 ? (
@@ -153,7 +196,6 @@ const MyAssignments: React.FC = () => {
                     )}
                 </div>
 
-                {/* Active Deliveries Table */}
                  <div className="bg-white p-6 rounded-lg shadow-md border">
                     <h2 className="text-xl font-semibold mb-4 text-brand-dark">Active Deliveries</h2>
                     {activeDeliveries.length > 0 ? (
@@ -209,7 +251,7 @@ const MyProfile: React.FC = () => {
         <>
             <div className="bg-white p-6 rounded-lg shadow-md border max-w-2xl">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-brand-dark">My Profile</h2>
+                    <h2 className="text-xl font-semibold text-brand-dark">My Profile</h2>
                     <button onClick={() => setIsEditing(true)} className="font-bold py-2 px-4 rounded-md bg-brand-primary text-white hover:bg-brand-secondary">Edit Profile</button>
                 </div>
                 <div className="space-y-4">

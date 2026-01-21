@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import Header from './components/Header';
@@ -28,9 +27,11 @@ import TermsAndConditionsPage from './components/TermsAndConditionsPage';
 import DevToolbar from './components/DevToolbar';
 import InvoicePreviewPage from './components/InvoicePreviewPage';
 import PaymentInstructionsPage from './components/PaymentInstructionsPage';
+import BlogDetailPage from './components/BlogDetailPage';
 import { View, Profile, Category } from './types';
 import { supabase } from './lib/supabase/client';
 import { useCart } from './contexts/CartContext';
+import { categoriesData } from './data/categories';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -65,23 +66,8 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session?.user) {
-        await fetchProfile(session.user);
-      }
-    };
-
-    const fetchCategories = async () => {
-      const { data } = await supabase.from('categories').select('*');
-      if (data) setCategories(data);
-    };
-
-    // We only set up the real auth listener if not in a recognized dev/mock environment.
-    // For this tool, we assume the dev toolbar is always present, so we prioritize its functionality.
-    // getSession(); // This can cause issues with the mock login, so we let the toolbar drive state.
-    fetchCategories();
+    // Load categories from static data file
+    setCategories(categoriesData);
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
@@ -173,6 +159,7 @@ const App: React.FC = () => {
                   profile={profile}
                   onBack={() => handleNavigation({ name: 'products' })}
                   onProductSelect={(productId) => handleNavigation({ name: 'productDetail', productId })}
+                  categories={categories}
                />;
       case 'cart':
         return <CartPage 
@@ -210,7 +197,9 @@ const App: React.FC = () => {
       case 'labTests':
         return <LabTests />;
       case 'healthInsights':
-        return <HealthInsights />;
+        return <HealthInsights onNavigate={handleNavigation} />;
+      case 'blogDetail':
+        return <BlogDetailPage articleId={currentView.articleId} onNavigate={handleNavigation} />;
       case 'plusMembership':
         return <PlusMembership />;
       case 'offers':

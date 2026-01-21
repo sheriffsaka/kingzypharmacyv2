@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 
 const testimonials = [
@@ -34,7 +33,7 @@ const Testimonials: React.FC = () => {
   const currentTestimonial = testimonials[currentIndex];
 
   return (
-    <div className="relative bg-brand-primary text-white p-8 rounded-lg shadow-lg flex flex-col justify-between min-h-[280px]">
+    <div className="flex-grow relative bg-brand-primary text-white p-8 rounded-lg shadow-lg flex flex-col justify-between min-h-[280px]">
       {/* The testimonial content with transition */}
       <div className="transition-opacity duration-500 ease-in-out" key={currentIndex}>
         <p className="text-gray-200 mb-4 italic text-lg">"{currentTestimonial.quote}"</p>

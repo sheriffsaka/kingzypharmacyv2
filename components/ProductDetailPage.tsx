@@ -1,91 +1,55 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabase/client';
-import { Product, Profile, WholesaleTier } from '../types';
+import { Product, Profile, Category } from '../types';
 import ProductCard from './ProductCard';
 import { ArrowLeftIcon } from './Icons';
 import { useCart } from '../contexts/CartContext';
+import { productsData } from '../data/products';
 
 interface ProductDetailPageProps {
     productId: number;
     profile: Profile | null;
     onBack: () => void;
     onProductSelect: (productId: number) => void;
+    categories: Category[];
 }
 
-const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profile, onBack, onProductSelect }) => {
+const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profile, onBack, onProductSelect, categories }) => {
     const [product, setProduct] = useState<Product | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
     const { addToCart } = useCart();
 
     const isWholesale = profile?.role === 'wholesale_buyer' && profile.approval_status === 'approved';
 
     useEffect(() => {
-        setProduct(null);
-        setRelatedProducts([]);
         setLoading(true);
-        setError(null);
         
-        const fetchProductData = async () => {
-            if (!productId) return;
-            
-            try {
-                const { data: productData, error: productError } = await supabase
-                    .from('products')
-                    .select('id, name, description, category_id, dosage, prices, stock_status, image_url, min_order_quantity, categories(id, name, description)')
-                    .eq('id', productId)
-                    .single();
-                
-                if (productError) throw new Error(`Product fetch failed: ${productError.message}`);
-                // FIX: The Supabase query returns 'categories' as an array, but the 'Product' type expects an object.
-                // We transform the data to match the expected type by taking the first element of the 'categories' array.
-                // Also handles the case where productData is null to prevent crashes.
-                if (productData) {
-                    const transformedProduct = {
-                        ...productData,
-                        categories: Array.isArray(productData.categories) ? productData.categories[0] : productData.categories
-                    };
-                    setProduct(transformedProduct as Product);
-                    setQuantity(isWholesale ? transformedProduct.min_order_quantity : 1);
-                } else {
-                    setProduct(null);
-                }
+        // Find product from static data
+        const foundProductData = productsData.find(p => p.id === productId);
+        
+        if (foundProductData) {
+            const enrichedProduct = {
+                ...foundProductData,
+                categories: categories.find(c => c.id === foundProductData.category_id)
+            };
+            setProduct(enrichedProduct);
+            setQuantity(isWholesale ? enrichedProduct.min_order_quantity : 1);
 
-                const { data: relatedIdsData, error: relatedIdsError } = await supabase
-                    .from('related_products')
-                    .select('product_id_2')
-                    .eq('product_id_1', productId);
-                
-                if (relatedIdsError) throw new Error(`Related IDs fetch failed: ${relatedIdsError.message}`);
-                const relatedIds = relatedIdsData.map(r => r.product_id_2);
+            // Simple related products logic: find others in the same category
+            const related = productsData
+                .filter(p => p.category_id === foundProductData.category_id && p.id !== foundProductData.id)
+                .slice(0, 4) // Limit to 4 related products
+                .map(p => ({ ...p, categories: categories.find(c => c.id === p.category_id) }));
+            setRelatedProducts(related);
 
-                if (relatedIds.length > 0) {
-                    const { data: relatedProductsData, error: relatedProductsError } = await supabase
-                        .from('products')
-                        .select('id, name, description, category_id, dosage, prices, stock_status, image_url, min_order_quantity, categories(id, name, description)')
-                        .in('id', relatedIds);
-                    
-                    if (relatedProductsError) throw new Error(`Related products fetch failed: ${relatedProductsError.message}`);
-                    // FIX: The Supabase query returns 'categories' as an array, but the 'Product' type expects an object.
-                    // We transform the data to match the expected type by taking the first element of the 'categories' array.
-                    const transformedRelatedProducts = (relatedProductsData || []).map((p: any) => ({
-                        ...p,
-                        categories: Array.isArray(p.categories) ? p.categories[0] : p.categories
-                    }));
-                    setRelatedProducts(transformedRelatedProducts as Product[]);
-                }
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProductData();
-    }, [productId, isWholesale]);
+        } else {
+            setProduct(null);
+            setRelatedProducts([]);
+        }
+        
+        setLoading(false);
+    }, [productId, isWholesale, categories]);
     
     const handleAddToCart = () => {
         if (product) {
@@ -107,7 +71,6 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
                 return applicableTier.price;
             }
         }
-        // FIX: Add optional chaining and a fallback to 0.
         return p.prices?.retail ?? 0;
     };
     
@@ -131,7 +94,6 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
     const isAddToCartDisabled = product?.stock_status === 'out_of_stock' || (isWholesale && quantity < (product?.min_order_quantity ?? 1));
 
     if (loading) return <p className="text-center py-12">Loading product details...</p>;
-    if (error) return <p className="text-center py-12 text-red-500">Error: {error}</p>;
     if (!product) return <p className="text-center py-12">Product not found.</p>;
 
     const renderPriceSection = () => {
@@ -192,7 +154,6 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
         }
         
         // General Public View
-        // FIX: Add optional chaining and a fallback to 0.
         const retailPrice = product.prices?.retail ?? 0;
         const finalPrice = retailPrice - ((profile?.loyalty_discount_percentage ?? 0) / 100 * retailPrice);
 

@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, Profile, Category } from '../types';
 import ProductList from './ProductList';
-import { supabase } from '../lib/supabase/client';
 import { SearchIcon } from './Icons';
+import { productsData } from '../data/products';
 
 type SortOption = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc';
 
@@ -18,34 +17,19 @@ interface ProductsPageProps {
 const ProductsPage: React.FC<ProductsPageProps> = ({ profile, onProductSelect, selectedCategoryId, onSelectCategory, categories }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('name_asc');
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
-          .select('id, name, description, category_id, dosage, prices, stock_status, image_url, min_order_quantity, categories(id, name, description)');
-        
-        if (productsError) throw productsError;
-        const transformedData = (productsData || []).map((p: any) => ({
-          ...p,
-          categories: Array.isArray(p.categories) ? p.categories[0] : p.categories,
-        }));
-        setProducts(transformedData as Product[]);
-      } catch (err: any) {
-        setError('Failed to fetch product data. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
+    setLoading(true);
+    // Enrich product data with category information
+    const enrichedProducts = productsData.map(p => ({
+      ...p,
+      categories: categories.find(c => c.id === p.category_id)
+    }));
+    setProducts(enrichedProducts);
+    setLoading(false);
+  }, [categories]);
 
   useEffect(() => {
     setSearchQuery('');
@@ -117,8 +101,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ profile, onProductSelect, s
             </div>
         </div>
         {loading && <p className="text-center">Loading products...</p>}
-        {error && <p className="text-center text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && (
             <ProductList 
                 products={sortedAndFilteredProducts}
                 profile={profile}

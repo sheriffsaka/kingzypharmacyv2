@@ -21,14 +21,9 @@ const mockBuyerOrders: (Order & {order_status_history: OrderStatusHistory[], ord
         discount_applied: 142.5,
         delivery_address: { fullName: 'Bolanle Adeoye', street: '45, Unity Road', city: 'Ikeja', state: 'Lagos', zip: '100212', phone: '08055551234' },
         customer_details: { email: 'buyer@kingzy.com', userId: '00000000-0000-0000-0000-000000000005' },
-        // FIX: Completed mock payment data to satisfy the 'Payment' type.
         payments: [{
-            id: 1001,
-            order_id: 101,
-            amount: 5700,
-            created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-            payment_method: 'pay_on_delivery',
-            payment_status: 'paid'
+            id: 1001, order_id: 101, amount: 5700, created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+            payment_method: 'pay_on_delivery', payment_status: 'paid'
         }],
         order_items: [
             { id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 1500, products: { name: 'Paracetamol', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png' } },
@@ -36,9 +31,6 @@ const mockBuyerOrders: (Order & {order_status_history: OrderStatusHistory[], ord
         ] as any,
         order_status_history: [
             { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date(Date.now() - 86400000 * 5).toISOString(), updated_by: 'user' },
-            { id: 2, status: 'PROCESSING', updated_at: new Date(Date.now() - 86400000 * 4.9).toISOString(), updated_by: 'admin' },
-            { id: 3, status: 'DISPATCHED', updated_at: new Date(Date.now() - 86400000 * 4).toISOString(), updated_by: 'logistics' },
-            { id: 4, status: 'IN_TRANSIT', updated_at: new Date(Date.now() - 86400000 * 2).toISOString(), updated_by: 'logistics' },
             { id: 5, status: 'DELIVERED', updated_at: new Date(Date.now() - 86400000 * 1).toISOString(), updated_by: 'logistics' },
         ]
     },
@@ -51,24 +43,12 @@ const mockBuyerOrders: (Order & {order_status_history: OrderStatusHistory[], ord
         discount_applied: 300,
         delivery_address: { fullName: 'Bolanle Adeoye', street: '45, Unity Road', city: 'Ikeja', state: 'Lagos', zip: '100212', phone: '08055551234' },
         customer_details: { email: 'buyer@kingzy.com', userId: '00000000-0000-0000-0000-000000000005' },
-        // FIX: Completed mock payment data to satisfy the 'Payment' type.
         payments: [{
-            id: 1002,
-            order_id: 105,
-            amount: 12000,
-            created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-            payment_method: 'pay_on_delivery',
-            payment_status: 'paid'
+            id: 1002, order_id: 105, amount: 12000, created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+            payment_method: 'pay_on_delivery', payment_status: 'paid'
         }],
-        order_items: [
-            { id: 3, order_id: 105, product_id: 3, quantity: 3, unit_price: 4000, products: { name: 'Cetirizine Hydrochloride', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819815/pr8_x30k6m.png' } },
-        ] as any,
-        order_status_history: [
-            { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date(Date.now() - 86400000 * 1).toISOString(), updated_by: 'user' },
-            { id: 2, status: 'PROCESSING', updated_at: new Date(Date.now() - 86400000 * 0.9).toISOString(), updated_by: 'admin' },
-            { id: 3, status: 'DISPATCHED', updated_at: new Date(Date.now() - 86400000 * 0.5).toISOString(), updated_by: 'logistics' },
-            { id: 4, status: 'IN_TRANSIT', updated_at: new Date(Date.now() - 86400000 * 0.2).toISOString(), updated_by: 'logistics' },
-        ]
+        order_items: [ { id: 3, order_id: 105, product_id: 3, quantity: 3, unit_price: 4000, products: { name: 'Cetirizine Hydrochloride', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819815/pr8_x30k6m.png' } }, ] as any,
+        order_status_history: [ { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date(Date.now() - 86400000 * 1).toISOString(), updated_by: 'user' }, { id: 4, status: 'IN_TRANSIT', updated_at: new Date(Date.now() - 86400000 * 0.2).toISOString(), updated_by: 'logistics' },]
     },
     {
         id: 106,
@@ -79,26 +59,25 @@ const mockBuyerOrders: (Order & {order_status_history: OrderStatusHistory[], ord
         discount_applied: 92.5,
         delivery_address: { fullName: 'Bolanle Adeoye', street: '45, Unity Road', city: 'Ikeja', state: 'Lagos', zip: '100212', phone: '08055551234' },
         customer_details: { email: 'buyer@kingzy.com', userId: '00000000-0000-0000-0000-000000000005' },
-        // FIX: Completed mock payment data to satisfy the 'Payment' type.
         payments: [{
-            id: 1003,
-            order_id: 106,
-            amount: 3700,
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-            payment_method: 'online',
-            payment_status: 'awaiting_confirmation'
+            id: 1003, order_id: 106, amount: 3700, created_at: new Date(Date.now() - 3600000).toISOString(),
+            payment_method: 'online', payment_status: 'awaiting_confirmation'
         }],
-        order_items: [
-            { id: 4, order_id: 106, product_id: 1, quantity: 2, unit_price: 1500, products: { name: 'Paracetamol', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png' } },
-        ] as any,
-        order_status_history: [
-            { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: 'user' }
-        ]
+        order_items: [ { id: 4, order_id: 106, product_id: 1, quantity: 2, unit_price: 1500, products: { name: 'Paracetamol', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png' } }, ] as any,
+        order_status_history: [ { id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: 'user' } ]
     }
+];
+
+const mockBuyerActivityLog = [
+    { action: 'You placed Order #106', time: '1h ago' },
+    { action: 'Order #105 is now In Transit', time: '5h ago' },
+    { action: 'Proof of Payment for Order #104 was approved', time: '1d ago' },
+    { action: 'Order #101 has been delivered', time: '4d ago' },
+    { action: 'You updated your profile information', time: '1w ago' },
 ];
 // ------------------------------------
 
-type DashboardTab = 'profile' | 'orders';
+type DashboardTab = 'overview' | 'orders' | 'profile';
 
 interface BuyerDashboardProps {
   profile: Profile;
@@ -106,31 +85,41 @@ interface BuyerDashboardProps {
 }
 
 const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ profile, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<DashboardTab>('orders');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   
-  const renderContent = () => {
-    switch (activeTab) {
-        case 'profile': return <MyProfile profile={profile} />;
-        case 'orders': return <OrderHistory onProductSelect={(productId) => onNavigate({ name: 'productDetail', productId })} />;
-        default: return <OrderHistory onProductSelect={(productId) => onNavigate({ name: 'productDetail', productId })} />;
-    }
-  }
-
-  const TabButton: React.FC<{tab: DashboardTab, label: string}> = ({tab, label}) => (
+  const TabButton = ({ tab, label }: { tab: DashboardTab, label: string }) => (
     <button
         onClick={() => setActiveTab(tab)}
-        className={`px-4 py-2 font-semibold rounded-md transition-colors ${activeTab === tab ? 'bg-brand-primary text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+        className={`px-4 py-2 font-semibold transition-colors text-sm rounded-t-lg border-b-2 ${
+            activeTab === tab 
+            ? 'text-brand-primary border-brand-primary' 
+            : 'text-gray-500 border-transparent hover:text-brand-dark hover:border-gray-300'
+        }`}
     >
         {label}
     </button>
   );
 
+  const renderContent = () => {
+    switch (activeTab) {
+        case 'overview': return <BuyerDashboardOverview />;
+        case 'orders': return <OrderHistory onProductSelect={(productId) => onNavigate({ name: 'productDetail', productId })} />;
+        case 'profile': return <MyProfile profile={profile} />;
+        default: return <BuyerDashboardOverview />;
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-brand-dark mb-6">My Dashboard</h1>
-      <div className="flex space-x-2 border-b mb-6">
-        <TabButton tab="orders" label="My Orders" />
-        <TabButton tab="profile" label="My Profile" />
+      <h1 className="text-3xl font-bold text-brand-dark mb-2">My Dashboard</h1>
+      <p className="text-gray-600 mb-6">Welcome back! Here's a summary of your account and order history.</p>
+      
+      <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+              <TabButton tab="overview" label="Overview" />
+              <TabButton tab="orders" label="My Orders" />
+              <TabButton tab="profile" label="My Profile" />
+          </nav>
       </div>
       <div>
         {renderContent()}
@@ -138,6 +127,46 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ profile, onNavigate }) 
     </div>
   );
 };
+
+const BuyerDashboardOverview: React.FC = () => {
+    const metrics = [
+        { label: 'Total Orders Placed', value: mockBuyerOrders.length },
+        { label: 'Pending Confirmation', value: mockBuyerOrders.filter(o => o.payments?.[0].payment_status === 'awaiting_confirmation').length },
+        { label: 'Active Deliveries', value: mockBuyerOrders.filter(o => ['PROCESSING', 'DISPATCHED', 'IN_TRANSIT'].includes(o.status)).length },
+        { label: 'Completed Orders', value: mockBuyerOrders.filter(o => o.status === 'DELIVERED').length },
+    ];
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {metrics.map(metric => (
+                        <div key={metric.label} className="bg-white p-6 rounded-lg shadow-md border">
+                            <p className="text-sm font-medium text-gray-500">{metric.label}</p>
+                            <p className="text-3xl font-bold text-brand-dark mt-1">{metric.value}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md border">
+                <h3 className="text-xl font-semibold mb-4 text-brand-dark">Recent Activity</h3>
+                <ul className="divide-y divide-gray-200">
+                    {mockBuyerActivityLog.map((log, index) => (
+                        <li key={index} className="py-3 flex justify-between items-center">
+                            <div>
+                                <p className="text-sm text-gray-800">{log.action}</p>
+                            </div>
+                            <span className="text-xs text-gray-400">{log.time}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
+};
+
+// ... Rest of the components (MyProfile, OrderHistory) remain the same ...
+// ... I'm including them here to make the file complete as per the instructions ...
 
 const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -167,7 +196,7 @@ const MyProfile: React.FC<{profile: Profile}> = ({ profile }) => {
         <>
             <div className="bg-white p-6 rounded-lg shadow-md border">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-brand-dark">Account Information</h2>
+                    <h2 className="text-xl font-semibold text-brand-dark">Account Information</h2>
                     <button onClick={handleEdit} className="font-bold py-2 px-4 rounded-md bg-brand-primary text-white hover:bg-brand-secondary">Edit Profile</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -238,7 +267,7 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
     return (
         <>
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-brand-dark">My Orders</h2>
+                <h2 className="text-xl font-bold text-brand-dark">My Orders</h2>
                 {orders.length === 0 ? (
                     <p>You have not placed any orders yet.</p>
                 ) : (
