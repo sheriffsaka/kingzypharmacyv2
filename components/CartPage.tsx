@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useCart } from '../contexts/CartContext';
-import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod } from '../types';
+import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod, OrderStatus } from '../types';
 import { supabase } from '../lib/supabase/client';
 import { ArrowLeftIcon, TrashIcon } from './Icons';
 
@@ -48,7 +48,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
       setError(null);
       
       try {
-          // 1. Create the order record with 'pending' status
+          // 1. Create the order record with 'ORDER_RECEIVED' status
           const { data: orderData, error: orderError } = await supabase
               .from('orders')
               .insert({
@@ -57,7 +57,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                   discount_applied: loyaltyDiscountValue,
                   delivery_address: deliveryAddress,
                   customer_details: { email: session.user.email, userId: session.user.id },
-                  status: 'pending' // All orders start as pending until payment is processed
+                  status: 'ORDER_RECEIVED' // FIX: Correctly set initial status
               })
               .select()
               .single();
@@ -99,20 +99,9 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
               throw itemsError;
           }
           
-          // 4. If 'Pay on Delivery', update order status to 'processing'
-          if (paymentMethod === 'pay_on_delivery') {
-              const { error: updateError } = await supabase
-                .from('orders')
-                .update({ status: 'processing' })
-                .eq('id', orderId);
-              
-              if (updateError) {
-                  // Log error but proceed, as the order is still valid
-                  console.error('Failed to update order status for Pay on Delivery:', updateError);
-              }
-          }
+          // 4. Success: The order is now in the system awaiting admin action.
+          // The trigger `log_initial_order_status` will handle creating the history record.
 
-          // 5. Success
           clearCart();
           onPlaceOrder(orderId);
 
@@ -228,7 +217,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                 <button 
                     onClick={handleSubmitOrder}
                     disabled={!isFormValid() || isLoading || !session}
-                    className="w-full mt-6 bg-accent-green text-white font-bold py-3 rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="w-full mt-6 bg-brand-primary text-white font-bold py-3 rounded-md hover:bg-brand-secondary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                     {isLoading ? 'Placing Order...' : 'Place Order'}
                 </button>

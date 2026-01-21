@@ -67,7 +67,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, categories }) => {
                         <h3 className="font-bold text-lg mb-4">Policy Info</h3>
                         <ul className="space-y-2 text-gray-300">
                             <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Privacy Policy</button></li>
-                            <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Terms of Use</button></li>
+                            <li><button onClick={() => onNavigate({ name: 'terms'})} className="hover:text-brand-secondary transition-colors">Terms of Use</button></li>
                             <li><button onClick={() => onNavigate({ name: 'about'})} className="hover:text-brand-secondary transition-colors">Cookie Policy</button></li>
                         </ul>
                     </div>

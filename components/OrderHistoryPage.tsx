@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
-import { Order } from '../types';
+import { Order, OrderStatus } from '../types';
 import { getDocument } from '../services/documentService';
+import OrderTrackingTimeline from './OrderTrackingTimeline';
 
 interface OrderHistoryPageProps {
   session: Session | null;
@@ -15,6 +16,7 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [downloading, setDownloading] = useState<{ [key: string]: boolean }>({});
+    const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
     const fetchOrders = useCallback(async () => {
         if (!session?.user) return;
@@ -27,7 +29,8 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
                     *,
                     order_items ( *, products ( name, dosage, image_url ) ),
                     payments ( *, receipts ( id, receipt_number ) ),
-                    invoices ( id, invoice_number )
+                    invoices ( id, invoice_number ),
+                    order_status_history ( * )
                 `)
                 .eq('user_id', session.user.id)
                 .order('created_at', { ascending: false });
@@ -44,6 +47,10 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+    
+    const handleToggleTrack = (orderId: number) => {
+        setExpandedOrder(prev => (prev === orderId ? null : orderId));
+    };
 
     const handleDownload = async (type: 'invoice' | 'receipt', docId: number, filename: string) => {
         const key = `${type}-${docId}`;
@@ -51,7 +58,6 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
         try {
             const result = await getDocument(type, docId);
             if (result.downloadUrl) {
-                // Create a temporary link to trigger the download
                 const link = document.createElement('a');
                 link.href = result.downloadUrl;
                 link.setAttribute('download', filename);
@@ -69,15 +75,18 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
     };
 
 
-    const getStatusChip = (status: Order['status']) => {
-        const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full";
+    const getStatusChip = (status: OrderStatus) => {
+        const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
+        const statusText = status.replace(/_/g, ' ').toLowerCase();
         switch (status) {
-            case 'pending': return `${baseClasses} bg-yellow-100 text-yellow-800`;
-            case 'processing': return `${baseClasses} bg-blue-100 text-blue-800`;
-            case 'shipped': return `${baseClasses} bg-green-100 text-green-800`;
-            case 'delivered': return `${baseClasses} bg-green-200 text-green-900`;
-            case 'cancelled': return `${baseClasses} bg-red-100 text-red-800`;
-            default: return `${baseClasses} bg-gray-100 text-gray-800`;
+            case 'ORDER_RECEIVED': return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>{statusText}</span>;
+            case 'ORDER_ACKNOWLEDGED': return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{statusText}</span>;
+            case 'PROCESSING': return <span className={`${baseClasses} bg-blue-200 text-blue-900`}>{statusText}</span>;
+            case 'DISPATCHED': return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>{statusText}</span>;
+            case 'IN_TRANSIT': return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>{statusText}</span>;
+            case 'DELIVERED': return <span className={`${baseClasses} bg-green-100 text-green-800`}>{statusText}</span>;
+            case 'CANCELLED': return <span className={`${baseClasses} bg-red-100 text-red-800`}>{statusText}</span>;
+            default: return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{statusText}</span>;
         }
     };
 
@@ -109,7 +118,7 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <span className={getStatusChip(order.status)}>{order.status}</span>
+                                        {getStatusChip(order.status)}
                                         <span className="text-lg font-bold">₦{order.total_price.toLocaleString()}</span>
                                     </div>
                                 </div>
@@ -126,11 +135,14 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
                                     ))}
                                 </div>
                                  <div className="border-t pt-4 mt-4 flex flex-wrap gap-4">
+                                    <button onClick={() => handleToggleTrack(order.id)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300 transition-colors">
+                                      {expandedOrder === order.id ? 'Hide Tracking' : 'Track Order'}
+                                    </button>
                                     {invoice && (
                                         <button 
                                             onClick={() => handleDownload('invoice', invoice.id, `${invoice.invoice_number}.pdf`)}
                                             disabled={downloading[`invoice-${invoice.id}`]}
-                                            className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-primary/90 transition-colors disabled:bg-gray-400">
+                                            className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-secondary transition-colors disabled:bg-gray-400">
                                             {downloading[`invoice-${invoice.id}`] ? 'Generating...' : 'Download Invoice'}
                                         </button>
                                     )}
@@ -138,11 +150,12 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
                                          <button
                                             onClick={() => handleDownload('receipt', receipt.id, `${receipt.receipt_number}.pdf`)}
                                             disabled={downloading[`receipt-${receipt.id}`]}
-                                            className="bg-accent-green text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400">
+                                            className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-secondary transition-colors disabled:bg-gray-400">
                                             {downloading[`receipt-${receipt.id}`] ? 'Generating...' : 'Download Receipt'}
                                         </button>
                                     )}
                                 </div>
+                                {expandedOrder === order.id && <OrderTrackingTimeline history={order.order_status_history || []} />}
                             </div>
                         )
                     })}

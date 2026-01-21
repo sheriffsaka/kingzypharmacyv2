@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import HeroSection from './HeroSection';
 import WholesaleAuthForm from './WholesaleAuthForm';
 import { View } from '../types';
@@ -28,6 +28,8 @@ const benefits = [
 ];
 
 const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate }) => {
+    const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+
     return (
         <div className="bg-white">
             <HeroSection 
@@ -40,47 +42,56 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
                 <div className="container mx-auto px-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                        {/* Bento Box 1: Auth Form (takes more space) */}
-                        <div className="lg:col-span-2 bg-white rounded-xl shadow-lg border overflow-hidden">
-                            <WholesaleAuthForm />
-                        </div>
-
-                        {/* Bento Box 2: Benefits */}
-                        <div className="bg-brand-primary text-white rounded-xl shadow-lg border p-8 flex flex-col justify-center">
-                            <h3 className="text-2xl font-bold mb-6">Partnership Advantages</h3>
-                            <ul className="space-y-6">
-                                {benefits.map(benefit => (
-                                    <li key={benefit.title} className="flex items-start gap-4">
-                                        <div className="bg-white/20 p-2 rounded-full">
-                                            <benefit.icon className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold">{benefit.title}</h4>
-                                            <p className="text-sm text-gray-200">{benefit.description}</p>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Bento Box 3: Image */}
-                        <div className="relative rounded-xl shadow-lg border overflow-hidden min-h-[250px] bg-cover bg-center" style={{backgroundImage: "url('https://res.cloudinary.com/dzbibbld6/image/upload/v1768758490/supplychain2_bzj3zk.jpg')"}}>
-                           <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-                               <h3 className="text-xl font-bold text-white">A Supply Chain You Can Trust</h3>
-                           </div>
-                        </div>
-
-                        {/* Bento Box 4: Call to action */}
-                        <div className="lg:col-span-2 bg-white rounded-xl shadow-lg border p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div>
-                                <h3 className="text-2xl font-bold text-brand-dark">Ready to Get Started?</h3>
-                                <p className="text-gray-600 mt-1">Our team is ready to help you with the onboarding process.</p>
+                        {/* Auth Form */}
+                        <div className={mode === 'signup' ? "lg:col-span-2" : "lg:col-span-3"}>
+                            <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
+                                <WholesaleAuthForm mode={mode} setMode={setMode} />
                             </div>
-                            <button onClick={() => onNavigate({ name: 'contact' })} className="bg-accent-green text-white font-bold py-3 px-8 rounded-full hover:bg-green-600 transition-colors duration-300 whitespace-nowrap">
-                                Contact Our Team
-                            </button>
                         </div>
 
+                        {/* Conditionally render the info box only for signup mode */}
+                        {mode === 'signup' && (
+                            <div className="bg-brand-primary text-white rounded-xl shadow-lg border p-8 flex flex-col">
+                                {/* Advert Message */}
+                                <h3 className="text-3xl font-bold mb-2">Elevate Your Business</h3>
+                                <p className="text-gray-200 mb-8">Partner with us to streamline your procurement process and offer your customers the best in pharmaceutical care.</p>
+                                
+                                {/* Partnership Advantage */}
+                                <h4 className="text-xl font-bold mb-4">Partnership Advantages</h4>
+                                <ul className="space-y-6 mb-8">
+                                    {benefits.map(benefit => (
+                                        <li key={benefit.title} className="flex items-start gap-4">
+                                            <div className="bg-white/20 p-2 rounded-full">
+                                                <benefit.icon className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold">{benefit.title}</h4>
+                                                <p className="text-sm text-gray-200">{benefit.description}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                 {/* Image */}
+                                <img 
+                                    src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768758490/supplychain2_bzj3zk.jpg" 
+                                    alt="A trusted supply chain for pharmaceuticals" 
+                                    className="w-full h-auto object-cover rounded-lg shadow-md mb-8" 
+                                />
+                                
+                                {/* CTA */}
+                                <div className="text-center mt-auto">
+                                     <h3 className="text-2xl font-bold">Ready to Get Started?</h3>
+                                     <p className="text-gray-200 mt-2 mb-6">Our team is ready to help you with the onboarding process.</p>
+                                     <button 
+                                         onClick={() => onNavigate({ name: 'contact' })} 
+                                         className="bg-transparent border-2 border-brand-secondary text-brand-secondary font-bold py-3 px-8 rounded-full hover:bg-brand-secondary hover:text-white transition-colors duration-300"
+                                     >
+                                        Contact Our Team
+                                     </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

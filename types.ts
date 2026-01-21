@@ -28,6 +28,7 @@ export interface Product {
   stock_status: StockStatus;
   image_url: string;
   min_order_quantity: number;
+  wholesale_display_unit?: string;
   // This will be populated after fetching from the DB
   categories?: Category;
 }
@@ -46,7 +47,7 @@ export interface ChatMessage {
 // App Navigation View Type
 export type View = 
   | { name: 'products', categoryId?: number | null }
-  | { name: 'home' | 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'wholesale_public' | 'contact' | 'faq' }
+  | { name: 'home' | 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'wholesale_public' | 'contact' | 'faq' | 'terms' | 'logistics' }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number };
 
@@ -54,7 +55,14 @@ export type View =
 // Auth Types
 export type UserRole = 'admin' | 'wholesale_buyer' | 'general_public' | 'logistics';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus = 
+  | 'ORDER_RECEIVED' 
+  | 'ORDER_ACKNOWLEDGED' 
+  | 'PROCESSING' 
+  | 'DISPATCHED' 
+  | 'IN_TRANSIT' 
+  | 'DELIVERED' 
+  | 'CANCELLED';
 
 
 export interface Profile {
@@ -63,6 +71,8 @@ export interface Profile {
   role: UserRole;
   approval_status: ApprovalStatus;
   loyalty_discount_percentage: number;
+  // Joined data from auth.users for convenience
+  email?: string; 
 }
 
 // Order Types
@@ -80,6 +90,23 @@ export interface CustomerDetails {
     userId: string;
 }
 
+export interface OrderStatusHistory {
+    id: number;
+    status: OrderStatus;
+    updated_at: string;
+    updated_by: string; // The user ID (UUID) of who made the update
+    note?: string;
+}
+
+export interface LogisticsAssignment {
+    id: number;
+    assigned_at: string;
+    profiles: {
+        id: string;
+        email: string;
+    };
+}
+
 export interface Order {
     id: number;
     user_id: string;
@@ -93,6 +120,8 @@ export interface Order {
     payments?: Payment[];
     order_items?: OrderItem[];
     invoices?: Invoice[];
+    order_status_history?: OrderStatusHistory[];
+    logistics_assignments?: LogisticsAssignment[];
 }
 
 export interface OrderItem {

@@ -6,8 +6,12 @@ import { CloudUploadIcon, UserCircleIcon } from './Icons';
 
 type AuthMode = 'signin' | 'signup';
 
-const WholesaleAuthForm: React.FC = () => {
-  const [mode, setMode] = useState<AuthMode>('signup');
+interface WholesaleAuthFormProps {
+    mode: AuthMode;
+    setMode: (mode: AuthMode) => void;
+}
+
+const WholesaleAuthForm: React.FC<WholesaleAuthFormProps> = ({ mode, setMode }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -160,17 +164,19 @@ const WholesaleAuthForm: React.FC = () => {
   );
 
   const renderSigninForm = () => (
-     <form className="space-y-4" onSubmit={handleAuth}>
-        <div>
-          <label htmlFor="wholesale-email" className="sr-only">Email address</label>
-          <input id="wholesale-email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={formInputClasses} placeholder="you@example.com"/>
-        </div>
-        <div>
-          <label htmlFor="wholesale-password"className="sr-only">Password</label>
-          <input id="wholesale-password" name="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className={formInputClasses} placeholder="••••••••" />
-        </div>
-        <div><button type="submit" disabled={loading} className="w-full py-3 px-4 text-white bg-brand-primary rounded-md font-semibold hover:bg-brand-primary/90 disabled:bg-gray-400">{loading ? 'Processing...' : 'Sign In'}</button></div>
-      </form>
+     <div className="max-w-md mx-auto">
+        <form className="space-y-4" onSubmit={handleAuth}>
+            <div>
+              <label htmlFor="wholesale-email" className="sr-only">Email address</label>
+              <input id="wholesale-email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={formInputClasses} placeholder="you@example.com"/>
+            </div>
+            <div>
+              <label htmlFor="wholesale-password"className="sr-only">Password</label>
+              <input id="wholesale-password" name="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className={formInputClasses} placeholder="••••••••" />
+            </div>
+            <div><button type="submit" disabled={loading} className="w-full py-3 px-4 text-white bg-brand-primary rounded-md font-semibold hover:bg-brand-primary/90 disabled:bg-gray-400">{loading ? 'Processing...' : 'Sign In'}</button></div>
+        </form>
+     </div>
   );
 
   return (

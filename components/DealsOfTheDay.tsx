@@ -93,7 +93,7 @@ const DealsOfTheDay: React.FC<DealsOfTheDayProps> = ({ product, onProductSelect 
                 <div className="flex flex-col sm:flex-row gap-4">
                     <button 
                         onClick={handleAddToCart}
-                        className="flex-1 bg-accent-green text-white font-bold py-3 px-6 rounded-full hover:bg-green-600 transition-colors transform hover:scale-105"
+                        className="flex-1 bg-brand-primary text-white font-bold py-3 px-6 rounded-full hover:bg-brand-secondary transition-colors transform hover:scale-105"
                     >
                         Add to Cart
                     </button>

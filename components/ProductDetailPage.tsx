@@ -243,7 +243,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
                         <button 
                             onClick={handleAddToCart}
                             disabled={isAddToCartDisabled}
-                            className="bg-accent-green text-white font-bold py-3 px-6 rounded-full hover:bg-green-600 transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed w-full mt-6"
+                            className="bg-brand-primary text-white font-bold py-3 px-6 rounded-full hover:bg-brand-secondary transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed w-full mt-6"
                         >
                             {product.stock_status === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
                         </button>

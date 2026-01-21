@@ -12,6 +12,7 @@ import Chatbot from './components/Chatbot';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/AdminDashboard';
 import WholesaleDashboard from './components/WholesaleDashboard';
+import LogisticsDashboard from './components/LogisticsDashboard';
 import Footer from './components/Footer';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import LabTests from './components/LabTests';
@@ -22,6 +23,8 @@ import AboutPage from './components/AboutPage';
 import WholesalePublicPage from './components/WholesalePublicPage';
 import ContactPage from './components/ContactPage';
 import FAQPage from './components/FAQPage';
+import TermsAndConditionsPage from './components/TermsAndConditionsPage';
+import DevToolbar from './components/DevToolbar';
 import { View, Profile, Category } from './types';
 import { supabase } from './lib/supabase/client';
 import { useCart } from './contexts/CartContext';
@@ -32,6 +35,26 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentView, setCurrentView] = useState<View>({ name: 'home' });
   const { cartItemCount, setProfileForCart } = useCart();
+
+  const fetchProfile = async (user: User): Promise<Profile | null> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching profile:', error.message);
+      setProfile(null);
+      setProfileForCart(null);
+      return null;
+    } else {
+      const profileWithEmail = data ? { ...data, email: user.email } : null;
+      setProfile(profileWithEmail);
+      setProfileForCart(profileWithEmail);
+      return profileWithEmail;
+    }
+  };
 
   useEffect(() => {
     const getSession = async () => {
@@ -53,9 +76,28 @@ const App: React.FC = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
-        await fetchProfile(session.user);
-        // If the user was on the auth page, redirect them to the home page after login.
-        setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
+        const userProfile = await fetchProfile(session.user);
+
+        // Role-based routing after login
+        if (userProfile) {
+          switch (userProfile.role) {
+            case 'admin':
+              setCurrentView({ name: 'admin' });
+              break;
+            case 'logistics':
+              setCurrentView({ name: 'logistics' });
+              break;
+            case 'wholesale_buyer':
+              setCurrentView({ name: 'wholesale' });
+              break;
+            default:
+              // If the user was on the auth page, redirect them to the home page.
+              setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
+          }
+        } else {
+           // Fallback if profile somehow fails to load
+           setCurrentView({ name: 'home' });
+        }
       } else {
         setProfile(null);
         setProfileForCart(null); // Clear profile in cart context on logout
@@ -67,23 +109,6 @@ const App: React.FC = () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
-
-  const fetchProfile = async (user: User) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
-    
-    if (error) {
-      console.error('Error fetching profile:', error.message);
-      setProfile(null);
-      setProfileForCart(null);
-    } else {
-      setProfile(data);
-      setProfileForCart(data); // Update profile in cart context
-    }
-  };
   
   const handleNavigation = (view: View) => {
       window.scrollTo(0, 0); // Scroll to top on every navigation change
@@ -139,9 +164,11 @@ const App: React.FC = () => {
       case 'auth':
         return <AuthPage />;
       case 'admin':
-        return profile?.role === 'admin' ? <AdminDashboard /> : <p>Access Denied</p>;
+        return profile?.role === 'admin' ? <AdminDashboard /> : <p className="text-center p-8">Access Denied</p>;
       case 'wholesale':
-        return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} /> : <p>Access Denied</p>;
+        return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied</p>;
+      case 'logistics':
+        return profile?.role === 'logistics' ? <LogisticsDashboard /> : <p className="text-center p-8">Access Denied</p>;
       case 'wholesale_public':
         return <WholesalePublicPage onNavigate={handleNavigation} />;
       case 'labTests':
@@ -158,6 +185,8 @@ const App: React.FC = () => {
         return <ContactPage />;
       case 'faq':
         return <FAQPage />;
+      case 'terms':
+        return <TermsAndConditionsPage />;
       default:
         return <HomePage 
                  profile={profile}
@@ -170,7 +199,7 @@ const App: React.FC = () => {
   };
   
   return (
-    <div className="flex flex-col min-h-screen font-sans bg-white text-brand-dark">
+    <div className="flex flex-col min-h-screen font-sans bg-white text-brand-dark pb-20">
       <Header 
         session={session}
         profile={profile}
@@ -183,6 +212,7 @@ const App: React.FC = () => {
       </main>
       <Footer onNavigate={handleNavigation} categories={categories} />
       <ScrollToTopButton />
+      <DevToolbar session={session} profile={profile} />
     </div>
   );
 };

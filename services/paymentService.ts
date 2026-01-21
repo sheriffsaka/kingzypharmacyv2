@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabase/client';
 import { OrderStatus } from '../types';
 
@@ -36,7 +35,8 @@ export const mockUpdatePaymentAndOrderStatus = async (orderId: number, targetPay
         }
 
         // 3. Update the corresponding order status
-        const newOrderStatus: OrderStatus = targetPaymentStatus === 'paid' ? 'processing' : 'cancelled';
+        // FIX: Changed 'processing' and 'cancelled' to uppercase to match the OrderStatus type.
+        const newOrderStatus: OrderStatus = targetPaymentStatus === 'paid' ? 'PROCESSING' : 'CANCELLED';
         const { error: updateOrderError } = await supabase
             .from('orders')
             .update({ status: newOrderStatus })

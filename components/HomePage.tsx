@@ -82,7 +82,7 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
       {/* Our Products Section */}
       <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">Our Products</h2>
+              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Our Products</h2>
                {loading && <p className="text-center">Loading products...</p>}
                {error && <p className="text-center text-red-500">{error}</p>}
                {!loading && !error && (
@@ -107,14 +107,25 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
       
       {dealProduct && <DealsOfTheDay product={dealProduct} onProductSelect={onProductSelect} />}
 
-      {/* Shop by Category Section */}
+      {/* Combined Category and Testimonials Section */}
       <section className="py-16 bg-gradient-to-b from-blue-50 to-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-              {categories.slice(0, 5).map(cat => (
-                  <CategoryCard key={cat.id} category={cat} onSelectCategory={() => onSelectCategory(cat.id)} />
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            {/* Categories */}
+            <div>
+              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Shop by Category</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {categories.slice(0, 6).map(cat => (
+                      <CategoryCard key={cat.id} category={cat} onSelectCategory={() => onSelectCategory(cat.id)} />
+                  ))}
+              </div>
+            </div>
+
+            {/* Testimonials */}
+            <div>
+              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">What Our Customers Say</h2>
+              <Testimonials />
+            </div>
           </div>
         </div>
       </section>
@@ -122,12 +133,10 @@ const HomePage: React.FC<HomePageProps> = ({ profile, onNavigate, categories, on
       {/* Health Articles Section */}
       <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">Health Articles</h2>
+              <h2 className="text-2xl font-bold text-left text-brand-dark mb-8">Health Articles</h2>
               <HealthArticles articles={articles} />
           </div>
       </section>
-
-      <Testimonials />
 
       <DownloadApp />
     </div>

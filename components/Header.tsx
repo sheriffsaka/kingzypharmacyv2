@@ -124,6 +124,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                   <button onClick={() => handleDesktopNav({ name: 'offers' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Offers</button>
                   {profile?.role === 'admin' && <button onClick={() => handleDesktopNav({ name: 'admin' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Admin</button>}
                   {profile?.role === 'wholesale_buyer' && <button onClick={() => handleDesktopNav({ name: 'wholesale' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Wholesale Dashboard</button>}
+                  {profile?.role === 'logistics' && <button onClick={() => handleDesktopNav({ name: 'logistics' })} className="py-3 text-gray-200 hover:text-white font-medium transition-colors">Logistics Dashboard</button>}
               </div>
           </nav>
       </div>
@@ -148,6 +149,7 @@ const Header: React.FC<HeaderProps> = ({ session, profile, onNavigate, cartItemC
                 
                 {profile?.role === 'admin' && <button onClick={() => handleMobileNav({ name: 'admin' })} className={navButtonClasses}>Admin Dashboard</button>}
                 {profile?.role === 'wholesale_buyer' && <button onClick={() => handleMobileNav({ name: 'wholesale' })} className={navButtonClasses}>Wholesale Dashboard</button>}
+                {profile?.role === 'logistics' && <button onClick={() => handleMobileNav({ name: 'logistics' })} className={navButtonClasses}>Logistics Dashboard</button>}
                 
                  <div className="pt-4 border-t border-gray-700">
                     {session ? (

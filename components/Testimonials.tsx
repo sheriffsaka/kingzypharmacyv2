@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const testimonials = [
   {
@@ -20,25 +20,44 @@ const testimonials = [
 ];
 
 const Testimonials: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % testimonials.length);
+  }, []);
+
+  useEffect(() => {
+    const slideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+    return () => clearInterval(slideInterval);
+  }, [nextSlide]);
+
+  const currentTestimonial = testimonials[currentIndex];
+
   return (
-    <section className="bg-white py-16">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-brand-dark mb-8">What Our Customers Say</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="bg-gray-50 p-6 rounded-lg shadow-sm border">
-              <p className="text-gray-600 mb-4 italic">"{testimonial.quote}"</p>
-              <div className="flex items-center">
-                <img src={testimonial.imageUrl} alt={testimonial.name} className="w-12 h-12 rounded-full mr-4" />
-                <div>
-                  <h4 className="font-bold text-brand-dark">{testimonial.name}</h4>
-                </div>
-              </div>
-            </div>
-          ))}
+    <div className="relative bg-gray-50 p-6 rounded-lg shadow-sm border flex flex-col justify-between">
+      {/* The testimonial content with transition */}
+      <div className="transition-opacity duration-500 ease-in-out" key={currentIndex}>
+        <p className="text-gray-600 mb-4 italic text-lg">"{currentTestimonial.quote}"</p>
+        <div className="flex items-center">
+          <img src={currentTestimonial.imageUrl} alt={currentTestimonial.name} className="w-14 h-14 rounded-full mr-4 border-2 border-brand-secondary" />
+          <div>
+            <h4 className="font-bold text-brand-dark">{currentTestimonial.name}</h4>
+          </div>
         </div>
       </div>
-    </section>
+
+      {/* Navigation Dots */}
+      <div className="flex justify-center space-x-2 mt-4">
+        {testimonials.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${currentIndex === index ? 'bg-brand-primary' : 'bg-gray-300 hover:bg-gray-400'}`}
+            aria-label={`Go to testimonial ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 
