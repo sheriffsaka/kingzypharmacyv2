@@ -10,6 +10,8 @@ const AdminInventoryManagement: React.FC = () => {
     const [updating, setUpdating] = useState<Record<number, boolean>>({});
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
 
     const fetchProducts = useCallback(async () => {
         setLoading(true);
@@ -62,17 +64,41 @@ const AdminInventoryManagement: React.FC = () => {
         }
     };
     
-    const handleSaveEdit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (editingProduct) {
-            // MOCK: In a real app, this would be a Supabase update call.
-            setProducts(prev => prev.map(p => p.id === editingProduct.id ? editingProduct : p));
-            alert(`Product #${editingProduct.id} updated successfully (mock).`);
-            setEditingProduct(null);
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
         }
     };
     
-    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOpenEditModal = (product: Product) => {
+        setEditingProduct(product);
+        setImageFile(null);
+        setImagePreview(null);
+    };
+    
+    const handleSaveEdit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (editingProduct) {
+            let updatedProduct = { ...editingProduct };
+            if (imagePreview && imageFile) {
+                // In a real app, upload imageFile to Supabase Storage and get a public URL.
+                // For this mock, we use the local blob URL for instant UI feedback.
+                updatedProduct.image_url = imagePreview; 
+                alert(`(Mock) Image "${imageFile.name}" uploaded and product #${editingProduct.id} updated successfully.`);
+            } else {
+                 alert(`Product #${editingProduct.id} updated successfully (mock).`);
+            }
+            
+            setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+            setEditingProduct(null);
+            setImageFile(null);
+            setImagePreview(null);
+        }
+    };
+    
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (!editingProduct) return;
         const { name, value } = e.target;
         if (name.startsWith('prices.')) {
@@ -142,7 +168,7 @@ const AdminInventoryManagement: React.FC = () => {
                                         </select>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                        <button onClick={() => setEditingProduct(product)} className="text-brand-primary hover:underline">Edit</button>
+                                        <button onClick={() => handleOpenEditModal(product)} className="text-brand-primary hover:underline">Edit</button>
                                         <button onClick={() => setIsHistoryVisible(true)} className="text-gray-500 hover:underline">History</button>
                                     </td>
                                 </tr>
@@ -164,8 +190,18 @@ const AdminInventoryManagement: React.FC = () => {
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
                                 <div><label className="text-sm font-semibold">Product Name</label><input name="name" value={editingProduct.name} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
                                 <div><label className="text-sm font-semibold">Dosage</label><input name="dosage" value={editingProduct.dosage} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
-                                <div className="md:col-span-2"><label className="text-sm font-semibold">Description</label><textarea name="description" value={editingProduct.description} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full p-2 border rounded-md"/></div>
+                                <div className="md:col-span-2"><label className="text-sm font-semibold">Description</label><textarea name="description" value={editingProduct.description} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
                                 <div><label className="text-sm font-semibold">Retail Price (₦)</label><input name="prices.retail" type="number" value={editingProduct.prices.retail} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-semibold">Product Image</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                        <img src={imagePreview || editingProduct.image_url} alt="Product Preview" className="w-24 h-24 object-contain rounded-md bg-gray-100 border"/>
+                                        <label htmlFor="image-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                            <span>Change Image</span>
+                                            <input id="image-upload" type="file" accept="image/*" className="sr-only" onChange={handleImageChange} />
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                             <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
                                 <button type="button" onClick={() => setEditingProduct(null)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Cancel</button>
