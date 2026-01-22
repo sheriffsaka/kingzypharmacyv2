@@ -10,6 +10,14 @@ type AdminTab = 'overview' | 'orders' | 'inventory' | 'users' | 'approvals';
 const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AdminTab>('overview');
 
+    const tabLabels: Record<AdminTab, string> = {
+        overview: 'Overview',
+        orders: 'Order Management',
+        inventory: 'Inventory',
+        users: 'User Management',
+        approvals: 'Approvals',
+    };
+
     const TabButton = ({ tab, label }: { tab: AdminTab, label: string }) => (
         <button
             onClick={() => setActiveTab(tab)}
@@ -39,6 +47,20 @@ const AdminDashboard: React.FC = () => {
             <h1 className="text-3xl font-bold text-brand-dark mb-2">Admin Dashboard</h1>
             <p className="text-gray-600 mb-6">Manage all aspects of the Kingzy Pharmaceuticals platform from one central hub.</p>
             
+            <nav className="text-sm font-medium text-gray-500 mb-4" aria-label="Breadcrumb">
+                <ol className="list-none p-0 inline-flex items-center">
+                    <li>
+                        <button onClick={() => setActiveTab('overview')} className="hover:text-brand-primary transition-colors">Dashboard</button>
+                    </li>
+                    {activeTab !== 'overview' && (
+                    <>
+                        <li className="mx-2">/</li>
+                        <li className="text-gray-800">{tabLabels[activeTab]}</li>
+                    </>
+                    )}
+                </ol>
+            </nav>
+
             <div className="border-b border-gray-200 mb-6">
                 <nav className="-mb-px flex space-x-4" aria-label="Tabs">
                     <TabButton tab="overview" label="Overview" />

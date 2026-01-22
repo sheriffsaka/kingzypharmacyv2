@@ -58,6 +58,12 @@ type LogisticsTab = 'overview' | 'assignments' | 'profile';
 const LogisticsDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<LogisticsTab>('overview');
 
+    const tabLabels: Record<LogisticsTab, string> = {
+        overview: 'Overview',
+        assignments: 'My Assignments',
+        profile: 'My Profile',
+    };
+
     const TabButton = ({ tab, label }: { tab: LogisticsTab, label: string }) => (
         <button
             onClick={() => setActiveTab(tab)}
@@ -84,6 +90,20 @@ const LogisticsDashboard: React.FC = () => {
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold text-brand-dark mb-2">Logistics Dashboard</h1>
             <p className="text-gray-600 mb-6">Manage your assigned deliveries and update order statuses.</p>
+
+            <nav className="text-sm font-medium text-gray-500 mb-4" aria-label="Breadcrumb">
+                <ol className="list-none p-0 inline-flex items-center">
+                    <li>
+                        <button onClick={() => setActiveTab('overview')} className="hover:text-brand-primary transition-colors">Dashboard</button>
+                    </li>
+                    {activeTab !== 'overview' && (
+                    <>
+                        <li className="mx-2">/</li>
+                        <li className="text-gray-800">{tabLabels[activeTab]}</li>
+                    </>
+                    )}
+                </ol>
+            </nav>
 
              <div className="border-b border-gray-200 mb-6">
                 <nav className="-mb-px flex space-x-4" aria-label="Tabs">

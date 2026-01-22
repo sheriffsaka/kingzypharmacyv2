@@ -86,6 +86,12 @@ interface BuyerDashboardProps {
 
 const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ profile, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+
+  const tabLabels: Record<DashboardTab, string> = {
+    overview: 'Overview',
+    orders: 'My Orders',
+    profile: 'My Profile',
+  };
   
   const TabButton = ({ tab, label }: { tab: DashboardTab, label: string }) => (
     <button
@@ -113,6 +119,20 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ profile, onNavigate }) 
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-brand-dark mb-2">My Dashboard</h1>
       <p className="text-gray-600 mb-6">Welcome back! Here's a summary of your account and order history.</p>
+      
+      <nav className="text-sm font-medium text-gray-500 mb-4" aria-label="Breadcrumb">
+          <ol className="list-none p-0 inline-flex items-center">
+              <li>
+                  <button onClick={() => setActiveTab('overview')} className="hover:text-brand-primary transition-colors">Dashboard</button>
+              </li>
+              {activeTab !== 'overview' && (
+              <>
+                  <li className="mx-2">/</li>
+                  <li className="text-gray-800">{tabLabels[activeTab]}</li>
+              </>
+              )}
+          </ol>
+      </nav>
       
       <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-4" aria-label="Tabs">
