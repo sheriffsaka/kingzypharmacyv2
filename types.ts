@@ -3,6 +3,7 @@ export interface Category {
   name: string;
   description?: string;
   image_url?: string;
+  group?: string;
 }
 
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
@@ -46,7 +47,7 @@ export interface ChatMessage {
 // App Navigation View Type
 export type View = 
   | { name: 'products', categoryId?: number | null }
-  | { name: 'home' | 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'labTests' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'wholesale_public' | 'contact' | 'faq' | 'terms' | 'logistics' | 'buyerDashboard' }
+  | { name: 'home' | 'chat' | 'auth' | 'admin' | 'wholesale' | 'cart' | 'meriva' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'pharmacists_public' | 'contact' | 'faq' | 'terms' | 'logistics' | 'buyerDashboard' }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number }
   | { name: 'invoicePreview' | 'paymentInstructions', orderId: number }
@@ -63,7 +64,8 @@ export type OrderStatus =
   | 'DISPATCHED' 
   | 'IN_TRANSIT' 
   | 'DELIVERED' 
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'DELIVERY_CONFIRMED';
 
 
 export interface Profile {

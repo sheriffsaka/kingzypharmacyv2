@@ -15,7 +15,7 @@ import LogisticsDashboard from './components/LogisticsDashboard';
 import BuyerDashboard from './components/BuyerDashboard';
 import Footer from './components/Footer';
 import ScrollToTopButton from './components/ScrollToTopButton';
-import LabTests from './components/LabTests';
+import MerivaPage from './components/MerivaPage';
 import HealthInsights from './components/HealthInsights';
 import PlusMembership from './components/PlusMembership';
 import OffersPage from './components/OffersPage';
@@ -181,7 +181,7 @@ const App: React.FC = () => {
       case 'auth':
         return <AuthPage />;
       case 'admin':
-        return profile?.role === 'admin' ? <AdminDashboard /> : <p className="text-center p-8">Access Denied. Please log in as an Admin.</p>;
+        return profile?.role === 'admin' ? <AdminDashboard profile={profile} /> : <p className="text-center p-8">Access Denied. Please log in as an Admin.</p>;
       case 'wholesale':
         return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied. Please log in as a Wholesale Buyer.</p>;
       case 'logistics':
@@ -192,10 +192,10 @@ const App: React.FC = () => {
           return <InvoicePreviewPage orderId={currentView.orderId} onNavigate={handleNavigation} />;
       case 'paymentInstructions':
           return <PaymentInstructionsPage orderId={currentView.orderId} onNavigate={handleNavigation} />;
-      case 'wholesale_public':
+      case 'pharmacists_public':
         return <WholesalePublicPage onNavigate={handleNavigation} />;
-      case 'labTests':
-        return <LabTests />;
+      case 'meriva':
+        return <MerivaPage />;
       case 'healthInsights':
         return <HealthInsights onNavigate={handleNavigation} />;
       case 'blogDetail':

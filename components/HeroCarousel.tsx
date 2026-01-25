@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { View } from '../types';
 import { ArrowRightIcon } from './Icons';
@@ -13,7 +12,8 @@ const slides = [
     title: 'Become a Wholesale Partner',
     subtitle: 'Access exclusive bulk pricing and priority logistics. Join our network of pharmacies and grow your business today.',
     ctaText: 'Register Now',
-    ctaView: { name: 'wholesale_public' } as View,
+    // FIX: Changed 'wholesale_public' to 'pharmacists_public' to match the View type.
+    ctaView: { name: 'pharmacists_public' } as View,
   },
   {
     imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768763581/authentic_binysa.jpg',

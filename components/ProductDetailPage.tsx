@@ -212,6 +212,26 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, profil
                 </div>
             </div>
 
+            {isWholesale && (
+                <section className="mb-12">
+                    <h2 className="text-2xl font-bold text-brand-dark mb-6">Technical Drug Details</h2>
+                    <div className="bg-white p-6 rounded-lg shadow-md border text-gray-700 space-y-4">
+                        <div>
+                            <h3 className="font-semibold text-brand-dark">Active Ingredients</h3>
+                            <p>Each tablet contains {product.name} {product.dosage}. (Mock Data)</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-brand-dark">Pharmacology</h3>
+                            <p>This is mock data. In a real application, this section would detail the pharmacodynamics and pharmacokinetics of the drug, including its mechanism of action, absorption, distribution, metabolism, and excretion.</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-brand-dark">Storage Conditions</h3>
+                            <p>Store in a cool, dry place below 25°C. Keep out of reach of children. Protect from direct sunlight.</p>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {relatedProducts.length > 0 && (
                 <section>
                     <h2 className="text-2xl font-bold text-brand-dark mb-6">Related Products</h2>

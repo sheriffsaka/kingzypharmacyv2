@@ -168,6 +168,13 @@ const MyAssignments: React.FC = () => {
 
     const handleReject = (orderId: number) => {
         if (confirm("Are you sure you want to reject this assignment? It will be returned to the admin's queue.")) {
+            // Add notification for admin
+            localStorage.setItem('admin_notification', JSON.stringify({
+                type: 'REJECTED_DISPATCH',
+                orderId: orderId,
+                timestamp: Date.now()
+            }));
+
             setAssignedOrders(prev => prev.filter(o => o.id !== orderId));
             alert(`Order #${orderId} rejected and returned to admin for reassignment.`);
         }

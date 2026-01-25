@@ -119,8 +119,8 @@ const WholesaleDashboard: React.FC<WholesaleDashboardProps> = ({ profile, onNavi
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-brand-dark mb-2">Wholesale Dashboard</h1>
-       <p className="text-gray-600 mb-6">Welcome! Manage your wholesale orders and account details here.</p>
+      <h1 className="text-3xl font-bold text-brand-dark mb-2">Pharmacist Dashboard</h1>
+       <p className="text-gray-600 mb-6">Welcome! Manage your pharmacy orders and account details here.</p>
 
         <nav className="text-sm font-medium text-gray-500 mb-4" aria-label="Breadcrumb">
             <ol className="list-none p-0 inline-flex items-center">
@@ -322,6 +322,11 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
         setPopFile(null);
     };
 
+    const handleConfirmReceipt = (orderId: number) => {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'DELIVERY_CONFIRMED' } : o));
+        alert(`Thank you for confirming receipt of order #${orderId}.`);
+    };
+
     const getStatusChip = (status: OrderStatus) => {
         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
         const statusText = status.replace(/_/g, ' ').toLowerCase();
@@ -331,6 +336,7 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
             case 'IN_TRANSIT': return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>{statusText}</span>;
             case 'DELIVERED': return <span className={`${baseClasses} bg-green-100 text-green-800`}>{statusText}</span>;
             case 'CANCELLED': return <span className={`${baseClasses} bg-red-100 text-red-800`}>{statusText}</span>;
+            case 'DELIVERY_CONFIRMED': return <span className={`${baseClasses} bg-green-200 text-green-900`}>{statusText}</span>;
             default: return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{statusText}</span>;
         }
     };
@@ -366,6 +372,11 @@ const OrderHistory: React.FC<{onProductSelect: (productId: number) => void}> = (
                                 {isAwaitingPayment && !hasUploaded && (
                                     <button onClick={() => setUploadingPopFor(order.id)} className="font-bold py-2 px-4 rounded-md bg-yellow-400 text-black hover:bg-yellow-500">
                                         Upload Payment Proof
+                                    </button>
+                                )}
+                                {order.status === 'DELIVERED' && (
+                                    <button onClick={() => handleConfirmReceipt(order.id)} className="font-bold py-2 px-4 rounded-md bg-accent-green text-white hover:bg-green-600">
+                                        Confirm Receipt
                                     </button>
                                 )}
                             </div>

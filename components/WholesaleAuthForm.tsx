@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { UserRole } from '../types';
@@ -103,7 +102,7 @@ const WholesaleAuthForm: React.FC<WholesaleAuthFormProps> = ({ mode, setMode }) 
   const renderSignupForm = () => (
     <form className="space-y-6" onSubmit={handleAuth}>
         <fieldset className="space-y-4">
-            <legend className="text-lg font-semibold border-b w-full pb-2 mb-2">Personal Information</legend>
+            <legend className="text-lg font-semibold border-b w-full pb-2 mb-2">Pharmacist Information</legend>
             
             <div>
                 <label className={formLabelClasses}>Profile Picture</label>
@@ -159,7 +158,7 @@ const WholesaleAuthForm: React.FC<WholesaleAuthFormProps> = ({ mode, setMode }) 
             </div>
         </fieldset>
 
-        <div><button type="submit" disabled={loading} className="w-full py-3 px-4 text-white bg-brand-primary rounded-md font-semibold hover:bg-brand-primary/90 disabled:bg-gray-400">{loading ? 'Processing...' : 'Create Wholesale Account'}</button></div>
+        <div><button type="submit" disabled={loading} className="w-full py-3 px-4 text-white bg-brand-primary rounded-md font-semibold hover:bg-brand-primary/90 disabled:bg-gray-400">{loading ? 'Processing...' : 'Create Pharmacist Account'}</button></div>
     </form>
   );
 
@@ -181,7 +180,7 @@ const WholesaleAuthForm: React.FC<WholesaleAuthFormProps> = ({ mode, setMode }) 
 
   return (
     <div className="w-full p-6 md:p-8 space-y-4">
-      <h3 className="text-2xl font-bold text-center text-brand-dark">{mode === 'signup' ? 'Wholesale Account Creation Form' : 'Partner Login'}</h3>
+      <h3 className="text-2xl font-bold text-center text-brand-dark">{mode === 'signup' ? 'Pharmacist Account Creation' : 'Partner Login'}</h3>
       
       {message && (
         <div className={`p-4 rounded-md text-sm ${message.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>

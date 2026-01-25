@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import HeroSection from './HeroSection';
 import WholesaleAuthForm from './WholesaleAuthForm';
@@ -33,7 +32,7 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
     return (
         <div className="bg-white">
             <HeroSection 
-                title="Partner with Kingzy Pharmaceuticals"
+                title="For Pharmacists & Healthcare Providers"
                 subtitle="Join our network of pharmacies and healthcare providers to access exclusive wholesale benefits and grow your business."
                 imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1768757551/warehouse3_oabgkd.jpg"
             />
