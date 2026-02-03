@@ -30,7 +30,7 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
     // CRUD Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAdmin, setEditingAdmin] = useState<(Profile & {email: string}) | null>(null);
-    const [adminForm, setAdminForm] = useState({ email: '', role: 'admin' as UserRole, status: 'approved' });
+    const [adminForm, setAdminForm] = useState({ email: '', role: 'admin' as UserRole, approval_status: 'approved' as 'approved' | 'pending' });
 
     // Global System Configuration (Persistent via LocalStorage)
     const [activeSettingsView, setActiveSettingsView] = useState<'main' | 'operations' | 'analytics'>('main');
@@ -56,19 +56,18 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
         localStorage.setItem('kingzy_system_config', JSON.stringify(systemConfig));
         alert("Global Parameters Synchronized: Changes are now active for all Logistics and Checkout sessions.");
         setActiveSettingsView('main');
-        // Trigger storage event for other components to listen
         window.dispatchEvent(new Event('storage'));
     };
 
     const handleOpenCreateModal = () => {
         setEditingAdmin(null);
-        setAdminForm({ email: '', role: 'admin', status: 'approved' });
+        setAdminForm({ email: '', role: 'admin', approval_status: 'approved' });
         setIsModalOpen(true);
     };
 
     const handleOpenEditModal = (admin: Profile & {email: string}) => {
         setEditingAdmin(admin);
-        setAdminForm({ email: admin.email || '', role: admin.role, status: admin.approval_status });
+        setAdminForm({ email: admin.email || '', role: admin.role, approval_status: admin.approval_status as 'approved' | 'pending' });
         setIsModalOpen(true);
     };
 
@@ -81,14 +80,14 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
     const handleAdminSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingAdmin) {
-            setAdmins(prev => prev.map(a => a.id === editingAdmin.id ? { ...a, email: adminForm.email, role: adminForm.role, approval_status: adminForm.status as any } : a));
+            setAdmins(prev => prev.map(a => a.id === editingAdmin.id ? { ...a, email: adminForm.email, role: adminForm.role, approval_status: adminForm.approval_status as any } : a));
             alert("Administrative record updated.");
         } else {
             const newAdmin: Profile & {email: string} = {
                 id: `admin-${Date.now()}`,
                 email: adminForm.email,
                 role: adminForm.role,
-                approval_status: adminForm.status as any,
+                approval_status: adminForm.approval_status as any,
                 created_at: new Date().toISOString().split('T')[0],
                 loyalty_discount_percentage: 0
             };
@@ -102,66 +101,59 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
         <div className="container mx-auto px-4 py-8 pb-24">
             <div className="mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-brand-dark tracking-tighter uppercase">Super Admin Hub</h1>
-                    <p className="text-gray-500 font-bold italic tracking-wide">Infrastructure Governance & Global Parameters</p>
+                    <h1 className="text-3xl font-black text-brand-dark tracking-tighter uppercase">Super Admin Hub</h1>
+                    <p className="text-gray-500 font-medium italic tracking-wide">Infrastructure Governance & Global Parameters</p>
                 </div>
-                <div className="bg-brand-dark text-white p-6 rounded-[2rem] flex items-center gap-5 border-r-8 border-brand-secondary shadow-2xl">
-                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-                        <UserCircleIcon className="w-10 h-10 text-brand-secondary"/>
+                <div className="bg-brand-dark text-white p-5 rounded-2xl flex items-center gap-4 border-r-4 border-brand-secondary shadow-lg">
+                    <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center border border-white/20">
+                        <UserCircleIcon className="w-8 h-8 text-brand-secondary"/>
                     </div>
                     <div>
-                        <p className="text-[10px] uppercase font-black text-brand-secondary tracking-[0.2em] leading-none mb-1.5">Authority Level: ROOT</p>
-                        <p className="font-black text-lg">{profile?.email || 'admin@kingzy.com'}</p>
+                        <p className="text-[9px] uppercase font-black text-brand-secondary tracking-widest leading-none mb-1">Authority Level: ROOT</p>
+                        <p className="font-semibold text-base">{profile?.email || 'admin@kingzy.com'}</p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex gap-2 border-b-4 border-gray-100 mb-10 overflow-x-auto scrollbar-hide">
-                <button onClick={() => setActiveTab('admins')} className={`whitespace-nowrap pb-5 px-6 font-black text-[11px] uppercase tracking-[0.15em] transition-all ${activeTab === 'admins' ? 'border-b-4 border-brand-primary text-brand-primary' : 'text-gray-400 hover:text-gray-600'}`}>Staff Directory</button>
-                <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap pb-5 px-6 font-black text-[11px] uppercase tracking-[0.15em] transition-all ${activeTab === 'orders' ? 'border-b-4 border-brand-primary text-brand-primary' : 'text-gray-400 hover:text-gray-600'}`}>Full Pipeline</button>
-                <button onClick={() => setActiveTab('activity')} className={`whitespace-nowrap pb-5 px-6 font-black text-[11px] uppercase tracking-[0.15em] transition-all ${activeTab === 'activity' ? 'border-b-4 border-brand-primary text-brand-primary' : 'text-gray-400 hover:text-gray-600'}`}>Audit Ledger</button>
-                <button onClick={() => setActiveTab('global_settings')} className={`whitespace-nowrap pb-5 px-6 font-black text-[11px] uppercase tracking-[0.15em] transition-all ${activeTab === 'global_settings' ? 'border-b-4 border-brand-primary text-brand-primary' : 'text-gray-400 hover:text-gray-600'}`}>System Params</button>
+            <div className="flex gap-2 border-b-2 border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
+                <button onClick={() => setActiveTab('admins')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'admins' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Admin Management</button>
+                <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'orders' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Orders</button>
+                <button onClick={() => setActiveTab('activity')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'activity' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Audit Ledger</button>
+                <button onClick={() => setActiveTab('global_settings')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'global_settings' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Global Settings</button>
             </div>
 
             {activeTab === 'admins' && (
-                <div className="bg-white rounded-[2.5rem] shadow-2xl border-4 border-gray-50 p-10 animate-fadeIn">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                        <h2 className="text-2xl font-black text-brand-dark uppercase tracking-tight">Privileged Access List</h2>
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 animate-fadeIn">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+                        <h2 className="text-xl font-bold text-brand-dark uppercase tracking-wider">Manage Admin Accounts</h2>
                         <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="relative flex-grow min-w-[300px]">
-                                <input type="text" placeholder="Search by email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full p-5 pl-14 bg-gray-50 border-4 border-gray-100 rounded-3xl outline-none focus:border-brand-primary transition-all text-sm font-bold shadow-inner" />
-                                <SearchIcon className="w-7 h-7 absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" />
+                            <div className="relative flex-grow">
+                                <input type="text" placeholder="Filter by user email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand-primary transition-all text-sm font-medium shadow-inner" />
+                                <SearchIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             </div>
-                            <button onClick={handleOpenCreateModal} className="bg-brand-primary text-white px-10 py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-brand-secondary transition-all shadow-[0_20px_40px_rgba(0,82,155,0.2)] transform hover:scale-105">+ Personnel</button>
+                            <button onClick={handleOpenCreateModal} className="bg-brand-primary text-white px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide hover:bg-brand-secondary transition-all shadow-md">+ Add Admin</button>
                         </div>
                     </div>
-                    <div className="overflow-x-auto rounded-[2rem] border-4 border-gray-50">
+                    <div className="overflow-x-auto rounded-lg border border-gray-200">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-50/50 text-[11px] font-black uppercase text-gray-400 tracking-[0.2em]">
+                            <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 tracking-wider">
                                 <tr>
-                                    <th className="py-7 px-8">Identity</th>
-                                    <th className="py-7 px-8">Clearance</th>
-                                    <th className="py-7 px-8">Operational Status</th>
-                                    <th className="py-7 px-8 text-right">Actions</th>
+                                    <th className="py-4 px-6">Identity</th>
+                                    <th className="py-4 px-6">Access Level</th>
+                                    <th className="py-4 px-6">Status</th>
+                                    <th className="py-4 px-6 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y-4 divide-gray-50">
+                            <tbody className="divide-y divide-gray-100">
                                 {filteredAdmins.map(admin => (
-                                    <tr key={admin.id} className="hover:bg-brand-light/20 group transition-colors">
-                                        <td className="py-7 px-8 font-black text-brand-dark text-lg tracking-tight">{admin.email}</td>
-                                        <td className="py-7 px-8">
-                                            <span className="bg-purple-100 text-purple-700 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-purple-200">{admin.role.replace('_', ' ')}</span>
-                                        </td>
-                                        <td className="py-7 px-8">
-                                            <span className={`text-[11px] font-black uppercase tracking-[0.1em] flex items-center gap-3 ${admin.approval_status === 'approved' ? 'text-accent-green' : 'text-red-500'}`}>
-                                                <div className={`w-3 h-3 rounded-full ${admin.approval_status === 'approved' ? 'bg-accent-green animate-pulse' : 'bg-red-500'}`}></div>
-                                                {admin.approval_status}
-                                            </span>
-                                        </td>
-                                        <td className="py-7 px-8 text-right">
-                                            <div className="flex justify-end gap-4">
-                                                <button onClick={() => handleOpenEditModal(admin)} className="p-4 bg-gray-100 text-brand-dark hover:bg-brand-primary hover:text-white rounded-2xl transition-all shadow-sm"><EyeIcon className="w-6 h-6" /></button>
-                                                <button onClick={() => handleDeleteAdmin(admin.id)} className="p-4 bg-red-50 text-red-400 hover:bg-red-500 hover:text-white rounded-2xl transition-all shadow-sm"><TrashIcon className="w-6 h-6" /></button>
+                                    <tr key={admin.id} className="hover:bg-gray-50 group transition-colors">
+                                        <td className="py-4 px-6 font-semibold text-brand-dark">{admin.email}</td>
+                                        <td className="py-4 px-6"><span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">{admin.role.replace('_', ' ')}</span></td>
+                                        <td className="py-4 px-6"><span className={`text-xs font-bold uppercase tracking-wider ${admin.approval_status === 'approved' ? 'text-accent-green' : 'text-red-500'}`}>● {admin.approval_status}</span></td>
+                                        <td className="py-4 px-6 text-right">
+                                            <div className="flex justify-end gap-3">
+                                                <button onClick={() => handleOpenEditModal(admin)} className="p-2 bg-gray-100 text-gray-600 hover:bg-brand-primary hover:text-white rounded-lg transition-all shadow-sm"><EyeIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDeleteAdmin(admin.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm"><TrashIcon className="w-5 h-5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -173,79 +165,79 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
             )}
 
             {activeTab === 'global_settings' && (
-                <div className="space-y-10 animate-fadeIn">
+                <div className="space-y-8 animate-fadeIn">
                     {activeSettingsView === 'main' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div className="bg-white p-12 rounded-[3rem] border-4 border-gray-50 shadow-2xl hover:border-brand-primary transition-all cursor-pointer group" onClick={() => setActiveSettingsView('operations')}>
-                                <div className="bg-brand-primary text-white w-24 h-24 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_20px_40px_rgba(0,82,155,0.3)] group-hover:scale-110 transition-transform font-black text-4xl">₦</div>
-                                <h3 className="text-3xl font-black text-brand-dark mb-4 uppercase tracking-tighter">Business Logic & Fees</h3>
-                                <p className="text-gray-500 text-lg font-medium leading-relaxed mb-10 italic">Adjust global delivery overheads, staff fuel subsidies, and sales tax thresholds.</p>
-                                <button className="w-full bg-brand-primary text-white py-6 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-brand-secondary shadow-xl transition-all">Configure Operations</button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-white p-10 rounded-2xl border border-gray-100 shadow-lg hover:border-brand-primary transition-all cursor-pointer group" onClick={() => setActiveSettingsView('operations')}>
+                                <div className="bg-brand-primary text-white w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform font-black text-2xl">₦</div>
+                                <h3 className="text-2xl font-bold text-brand-dark mb-3 uppercase tracking-wider">Operational Constants</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-6">Modify delivery overheads, staff fuel subsidies, and commercial order minimums.</p>
+                                <button className="w-full bg-brand-primary text-white py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-brand-secondary shadow-md transition-all">Configure Parameters</button>
                             </div>
-                            <div className="bg-brand-dark p-12 rounded-[3rem] shadow-2xl hover:border-brand-secondary transition-all cursor-pointer group relative overflow-hidden" onClick={() => setActiveSettingsView('analytics')}>
-                                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
-                                <div className="bg-brand-secondary text-white w-24 h-24 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_20px_40px_rgba(0,163,224,0.3)] group-hover:scale-110 transition-transform font-black text-4xl">📈</div>
-                                <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Market Intelligence</h3>
-                                <p className="text-blue-100/60 text-lg font-medium leading-relaxed mb-10 italic">Monitor network-wide transaction velocity and fulfillment performance metrics.</p>
-                                <button className="w-full bg-white text-brand-dark py-6 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-brand-secondary hover:text-white shadow-xl transition-all">View Analytics</button>
+                            <div className="bg-white p-10 rounded-2xl border border-gray-100 shadow-lg hover:border-brand-primary transition-all cursor-pointer group" onClick={() => setActiveSettingsView('analytics')}>
+                                <div className="bg-brand-dark text-white w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform font-black text-2xl">📈</div>
+                                <h3 className="text-2xl font-bold text-brand-dark mb-3 uppercase tracking-wider">Market Intelligence</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-6">Analyze transaction density, fulfillment speeds, and category revenue performance.</p>
+                                <button className="w-full bg-brand-dark text-white py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-black shadow-md transition-all">Review Insights</button>
                             </div>
                         </div>
                     )}
 
                     {activeSettingsView === 'operations' && (
-                        <div className="bg-white p-12 rounded-[3.5rem] border-8 border-gray-50 shadow-[0_50px_100px_rgba(0,0,0,0.1)] max-w-5xl mx-auto animate-scaleIn relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary/5 rounded-full -mr-48 -mt-48"></div>
-                            <div className="flex justify-between items-center mb-16 relative z-10">
+                        <div className="bg-white p-10 rounded-2xl border shadow-xl max-w-5xl mx-auto animate-scaleIn relative overflow-hidden">
+                            <div className="flex justify-between items-center mb-10">
                                 <div>
-                                    <h3 className="text-4xl font-black text-brand-dark uppercase tracking-tighter">Operational Constants</h3>
-                                    <p className="text-gray-400 font-bold text-sm uppercase mt-2 tracking-widest">Master override for platform financial logic</p>
+                                    <h3 className="text-2xl font-bold text-brand-dark uppercase tracking-wider">Global Parameters</h3>
+                                    <p className="text-gray-500 font-medium text-sm mt-1">Adjust system-wide operational constants</p>
                                 </div>
-                                <button onClick={() => setActiveSettingsView('main')} className="bg-gray-100 p-4 rounded-full hover:bg-red-50 hover:text-red-500 transition-all shadow-inner"><XIcon className="w-10 h-10"/></button>
+                                <button onClick={() => setActiveSettingsView('main')} className="bg-gray-100 p-2 rounded-full hover:bg-red-100 hover:text-red-500 transition-all shadow-sm"><XIcon className="w-6 h-6"/></button>
                             </div>
-                            <form onSubmit={handleSaveConfig} className="space-y-16 relative z-10">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                    {/* Logistics Costs */}
-                                    <div className="space-y-10">
-                                        <h4 className="text-[12px] font-black uppercase text-brand-primary tracking-[0.3em] border-b-4 border-brand-primary/10 pb-4">Logistics & Support</h4>
-                                        <div className="p-10 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner group">
-                                            <label className="block text-[11px] font-black text-gray-400 uppercase mb-5 tracking-widest group-hover:text-brand-primary transition-colors">Base Delivery Fee (Retail)</label>
-                                            <div className="relative">
-                                                <span className="absolute left-7 top-1/2 -translate-y-1/2 font-black text-brand-primary text-2xl">₦</span>
-                                                <input type="number" value={systemConfig.deliveryFee} onChange={e => setSystemConfig({...systemConfig, deliveryFee: Number(e.target.value)})} className="w-full p-8 pl-16 border-4 border-white rounded-[2rem] outline-none focus:border-brand-primary font-black text-4xl bg-white shadow-2xl transition-all"/>
-                                            </div>
+                            <form onSubmit={handleSaveConfig} className="space-y-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {/* Logistics */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <h4 className="text-xs font-bold uppercase text-brand-primary tracking-widest border-b-2 border-brand-primary/20 pb-2">Logistics</h4>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Delivery Fee (Retail)</label>
+                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-primary">₦</span><input type="number" value={systemConfig.deliveryFee} onChange={e => setSystemConfig({...systemConfig, deliveryFee: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-primary font-bold text-xl bg-white shadow-sm"/></div>
                                         </div>
-                                        <div className="p-10 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner group">
-                                            <label className="block text-[11px] font-black text-gray-400 uppercase mb-5 tracking-widest group-hover:text-brand-primary transition-colors">Staff Petrol Allowance (Monthly)</label>
-                                            <div className="relative">
-                                                <span className="absolute left-7 top-1/2 -translate-y-1/2 font-black text-brand-primary text-2xl">₦</span>
-                                                <input type="number" value={systemConfig.fuelAllowance} onChange={e => setSystemConfig({...systemConfig, fuelAllowance: Number(e.target.value)})} className="w-full p-8 pl-16 border-4 border-white rounded-[2rem] outline-none focus:border-brand-primary font-black text-4xl bg-white shadow-2xl transition-all"/>
-                                            </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Staff Petrol Allowance</label>
+                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-primary">₦</span><input type="number" value={systemConfig.fuelAllowance} onChange={e => setSystemConfig({...systemConfig, fuelAllowance: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-primary font-bold text-xl bg-white shadow-sm"/></div>
                                         </div>
                                     </div>
-
-                                    {/* Financial Guardrails */}
-                                    <div className="space-y-10">
-                                        <h4 className="text-[12px] font-black uppercase text-brand-secondary tracking-[0.3em] border-b-4 border-brand-secondary/10 pb-4">Commercial Guardrails</h4>
-                                        <div className="p-10 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner group">
-                                            <label className="block text-[11px] font-black text-gray-400 uppercase mb-5 tracking-widest group-hover:text-brand-secondary transition-colors">Min. Wholesale Batch Value</label>
-                                            <div className="relative">
-                                                <span className="absolute left-7 top-1/2 -translate-y-1/2 font-black text-brand-secondary text-2xl">₦</span>
-                                                <input type="number" value={systemConfig.minWholesaleOrder} onChange={e => setSystemConfig({...systemConfig, minWholesaleOrder: Number(e.target.value)})} className="w-full p-8 pl-16 border-4 border-white rounded-[2rem] outline-none focus:border-brand-secondary font-black text-4xl bg-white shadow-2xl transition-all"/>
-                                            </div>
+                                    {/* Commercial */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <h4 className="text-xs font-bold uppercase text-brand-secondary tracking-widest border-b-2 border-brand-secondary/20 pb-2">Commercial</h4>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Min. Wholesale Value</label>
+                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-secondary">₦</span><input type="number" value={systemConfig.minWholesaleOrder} onChange={e => setSystemConfig({...systemConfig, minWholesaleOrder: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-secondary font-bold text-xl bg-white shadow-sm"/></div>
                                         </div>
-                                        <div className="p-10 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner group">
-                                            <label className="block text-[11px] font-black text-gray-400 uppercase mb-5 tracking-widest group-hover:text-brand-secondary transition-colors">Standard Sales VAT (%)</label>
-                                            <div className="relative">
-                                                <span className="absolute right-7 top-1/2 -translate-y-1/2 font-black text-brand-secondary text-2xl">%</span>
-                                                <input type="number" step="0.1" value={systemConfig.taxPercentage} onChange={e => setSystemConfig({...systemConfig, taxPercentage: Number(e.target.value)})} className="w-full p-8 pr-16 border-4 border-white rounded-[2rem] outline-none focus:border-brand-secondary font-black text-4xl bg-white shadow-2xl transition-all"/>
-                                            </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Sales VAT (%)</label>
+                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-brand-secondary">%</span><input type="number" step="0.1" value={systemConfig.taxPercentage} onChange={e => setSystemConfig({...systemConfig, taxPercentage: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-brand-secondary font-bold text-xl bg-white shadow-sm"/></div>
+                                        </div>
+                                    </div>
+                                    {/* Discounts */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <h4 className="text-xs font-bold uppercase text-accent-green tracking-widest border-b-2 border-accent-green/20 pb-2">Loyalty Discounts</h4>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Retail Buyer (%)</label>
+                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.retailDiscount} onChange={e => setSystemConfig({...systemConfig, retailDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Wholesale Buyer (%)</label>
+                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.wholesaleDiscount} onChange={e => setSystemConfig({...systemConfig, wholesaleDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
+                                        </div>
+                                         <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Platinum Member (%)</label>
+                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.platinumDiscount} onChange={e => setSystemConfig({...systemConfig, platinumDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="flex gap-6 pt-12">
-                                    <button type="button" onClick={() => setActiveSettingsView('main')} className="flex-1 py-7 bg-white border-8 border-gray-100 font-black text-sm uppercase tracking-widest rounded-[2rem] hover:bg-gray-50 transition-colors shadow-sm">Abort Changes</button>
-                                    <button type="submit" className="flex-2 py-7 bg-brand-primary text-white font-black text-sm uppercase tracking-widest rounded-[2rem] hover:bg-brand-secondary shadow-[0_30px_60px_rgba(0,82,155,0.4)] transition-all transform hover:-translate-y-2 active:scale-95">Commit Global Update</button>
+                                <div className="flex gap-4 pt-6 border-t mt-6">
+                                    <button type="button" onClick={() => setActiveSettingsView('main')} className="flex-1 py-3 bg-gray-100 font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors shadow-sm">Discard</button>
+                                    <button type="submit" className="flex-2 py-3 bg-brand-primary text-white font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-brand-secondary shadow-lg transition-all transform hover:-translate-y-1">Save & Sync</button>
                                 </div>
                             </form>
                         </div>
@@ -253,22 +245,43 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
                 </div>
             )}
 
-            {/* Admin Order Pipeline component integrated */}
-            {activeTab === 'orders' && profile && (
-                 <div className="space-y-10 animate-fadeIn">
-                    <div className="bg-brand-primary text-white p-10 rounded-[3rem] shadow-2xl flex items-center gap-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-                        <div className="bg-white/10 p-6 rounded-[2rem] border border-white/20"><ShoppingCartIcon className="w-16 h-16 text-white flex-shrink-0"/></div>
-                        <div>
-                            <h3 className="text-3xl font-black uppercase tracking-tight">Platform Master Pipeline</h3>
-                            <p className="text-blue-100 text-lg font-medium opacity-80 italic">Root authority active. All fulfillment terminal data is unmasked.</p>
-                        </div>
+            {activeTab === 'orders' && profile && (<div className="animate-fadeIn"><AdminOrderManagement profile={profile} /></div>)}
+            {activeTab === 'activity' && (<div className="bg-white rounded-lg shadow-lg border p-8 animate-fadeIn"><h2 className="text-xl font-bold text-brand-dark mb-6">Platform Integrity Log</h2><div className="space-y-3">{mockActivities.map(activity => (<div key={activity.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border"><div className="flex gap-4 items-center"><div className="w-2 h-2 bg-brand-primary rounded-full"></div><div><p className="font-semibold text-sm text-brand-dark">{activity.action}</p><p className="text-xs text-gray-500">By: <span className="font-medium text-brand-primary">{activity.adminEmail}</span></p></div></div><div className="text-right"><p className="text-sm font-semibold text-gray-800">{activity.target}</p><p className="text-xs text-gray-400">{activity.timestamp}</p></div></div>))}</div></div>)}
+
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-scaleIn">
+                        <form onSubmit={handleAdminSubmit}>
+                            <div className="p-6 border-b flex justify-between items-center">
+                                <h3 className="text-lg font-bold text-brand-dark">{editingAdmin ? 'Edit Admin Account' : 'Create New Admin'}</h3>
+                                <button type="button" onClick={() => setIsModalOpen(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div><label className="text-sm font-semibold text-gray-600">Email Address</label><input type="email" required value={adminForm.email} onChange={(e) => setAdminForm({...adminForm, email: e.target.value})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"/></div>
+                                <div>
+                                    <label className="text-sm font-semibold text-gray-600">Role</label>
+                                    <select required value={adminForm.role} onChange={(e) => setAdminForm({...adminForm, role: e.target.value as UserRole})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                        <option value="admin">Admin</option>
+                                        <option value="super_admin">Super Admin</option>
+                                        <option value="logistics">Logistics</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-gray-600">Status</label>
+                                    <select required value={adminForm.approval_status} onChange={(e) => setAdminForm({...adminForm, approval_status: e.target.value as 'approved' | 'pending'})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                        <option value="approved">Approved</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                                <button type="submit" className="py-2 px-4 bg-brand-primary text-white font-semibold rounded-lg hover:bg-brand-secondary">{editingAdmin ? 'Save Changes' : 'Create Admin'}</button>
+                            </div>
+                        </form>
                     </div>
-                    <AdminOrderManagement profile={profile} />
                 </div>
             )}
-
-            {/* Audit Logs Omitted for brevity, assumed existing */}
         </div>
     );
 };

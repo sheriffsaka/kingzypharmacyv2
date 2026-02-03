@@ -124,5 +124,127 @@ export const productsData: Omit<Product, 'categories'>[] = [
         stock_quantity: 100,
         image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770052901/wellness-removebg-preview_i0hj7p.png', 
         min_order_quantity: 1
+    },
+    {
+        id: 11,
+        name: 'Omega-3 Fish Oil',
+        description: 'Supports heart, brain, and joint health with high-potency EPA & DHA.',
+        category_id: 4, // Supplements
+        dosage: '1200mg, 90 softgels',
+        prices: { retail: 8500, wholesale_tiers: [{min_quantity: 12, price: 7000}] },
+        stock_status: 'in_stock',
+        stock_quantity: 250,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108628/Omega-3_Fish_Oil-removebg-preview_rvwohx.png',
+        min_order_quantity: 1,
+        wholesale_display_unit: 'Bottle of 90'
+    },
+    {
+        id: 12,
+        name: 'Hydrocortisone Cream 1%',
+        description: 'Provides temporary relief from itching associated with minor skin irritations and rashes.',
+        category_id: 6, // Tropical creams
+        dosage: '28g Tube',
+        prices: { retail: 2500 },
+        stock_status: 'in_stock',
+        stock_quantity: 400,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108626/Hydrocortisone_Cream_1_-removebg-preview_fd0tr6.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 13,
+        name: 'Melatonin',
+        description: 'A dietary supplement to promote restful sleep. Consult a doctor before use.',
+        category_id: 8, // CNS Agents
+        dosage: '5mg, 60 tablets',
+        prices: { retail: 5500 },
+        stock_status: 'in_stock',
+        stock_quantity: 180,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108626/melatonin-removebg-preview_onqsr6.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 14,
+        name: 'Creatine Monohydrate Powder',
+        description: 'Supports muscle strength, power, and size when combined with high-intensity activities.',
+        category_id: 9, // Performance Enhancers
+        dosage: '300g Container',
+        prices: { retail: 15000 },
+        stock_status: 'low_stock',
+        stock_quantity: 50,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108627/creatine-removebg-preview_fxkfzh.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 15,
+        name: 'Levothyroxine',
+        description: 'Prescription-only medication for treating hypothyroidism. Requires pharmacist verification.',
+        category_id: 10, // Hormonal Agents
+        dosage: '50mcg, 30 tablets',
+        prices: { retail: 4800 },
+        stock_status: 'in_stock',
+        stock_quantity: 200,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108627/Levothyroxine-removebg-preview_db4jjc.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 16,
+        name: 'Vitamin B12 Injection',
+        description: 'Prescription-only injectable solution for treating Vitamin B12 deficiency. Administered by a healthcare professional.',
+        category_id: 11, // Injectables
+        dosage: '1000mcg/mL, 1mL vial',
+        prices: { retail: 3000 },
+        stock_status: 'in_stock',
+        stock_quantity: 150,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108628/Vitamin_B12_Injection-removebg-preview_ortl7h.png',
+        min_order_quantity: 5,
+        wholesale_display_unit: 'Pack of 5 vials'
+    },
+    {
+        id: 17,
+        name: 'Digital Blood Pressure Monitor',
+        description: 'Easy-to-use upper arm blood pressure monitor for accurate at-home readings.',
+        category_id: 12, // Diagnostics
+        dosage: '1 Unit',
+        prices: { retail: 25000 },
+        stock_status: 'in_stock',
+        stock_quantity: 80,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108627/Digital_Blood_Pressure_Monitor-removebg-preview_tqqwiu.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 18,
+        name: 'Amlodipine',
+        description: 'Prescription-only medication used to treat high blood pressure (hypertension). Requires pharmacist verification.',
+        category_id: 13, // Anti-hypertensive
+        dosage: '5mg, 30 tablets',
+        prices: { retail: 2200 },
+        stock_status: 'in_stock',
+        stock_quantity: 600,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108628/Amlodipine-removebg-preview_qn5oai.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 19,
+        name: 'Metformin',
+        description: 'First-line medication for the treatment of type 2 diabetes. Prescription only, requires verification.',
+        category_id: 14, // Anti diabetes
+        dosage: '500mg, 56 tablets',
+        prices: { retail: 3800 },
+        stock_status: 'in_stock',
+        stock_quantity: 750,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770108627/Metformin-removebg-preview_khqxrp.png',
+        min_order_quantity: 1
+    },
+    {
+        id: 20,
+        name: 'Tranexamic Acid Injection',
+        description: 'Tranexamic Acid Injection is an antifibrinolytic medicine for parenteral use.',
+        category_id: 11, // Injectables
+        dosage: '500mg, 10 ampoules',
+        prices: { retail: 3800 },
+        stock_status: 'in_stock',
+        stock_quantity: 750,
+        image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770110824/tranexamic-acid-injection-box-ampoule-removebg-preview_m7jmmq.png',
+        min_order_quantity: 1
     }
 ];
