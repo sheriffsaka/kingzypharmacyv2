@@ -1,6 +1,12 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
+// IMPORTANT: REPLACE "YOUR_GEMINI_API_KEY_HERE" WITH YOUR ACTUAL GEMINI API KEY
+// NOTE: In a standard project with a build process (like Next.js or Vite), you would use environment variables.
+// However, in this specific browser-based environment without a build step, we place the key directly here for simplicity.
+// This ensures the application functions correctly when deployed to services like Vercel, where `process.env` is not available.
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+
 let chat: Chat | null = null;
 let isInitialized = false;
 
@@ -9,10 +15,10 @@ const initializeChat = () => {
     if (isInitialized) return;
     isInitialized = true; // Attempt initialization only once.
 
-    const apiKey = process.env.API_KEY;
+    const apiKey = GEMINI_API_KEY;
 
-    if (!apiKey) {
-        console.error("Configuration error: The Gemini API Key is missing. The AI assistant will not function.");
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+        console.error("Configuration error: The Gemini API Key is missing or has not been set. Please replace the placeholder in `services/geminiService.ts`. The AI assistant will not function.");
         return;
     }
 
@@ -47,7 +53,7 @@ export const sendMessageToAI = async (message: string): Promise<string> => {
     initializeChat();
 
     if (!chat) {
-        return "The AI assistant is currently unavailable due to a configuration issue. Please contact support.";
+        return "The AI assistant is currently unavailable due to a configuration issue. Please ensure the API key is correctly set in the application code.";
     }
 
     try {
