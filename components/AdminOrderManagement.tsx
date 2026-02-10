@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Order, Profile, OrderStatus, PaymentStatus, Payment, DeliveryAddress, CustomerDetails, PaymentMethod } from '../types';
-import { EyeIcon, XIcon, SearchIcon, ShoppingCartIcon, TrashIcon, ClipboardCheckIcon } from './Icons';
+import { Order, Profile, OrderStatus, PaymentStatus, Payment, DeliveryAddress, CustomerDetails, PaymentMethod, Product } from '../types';
+import { EyeIcon, XIcon, SearchIcon, ShoppingCartIcon, TrashIcon, ClipboardCheckIcon, CloudUploadIcon } from './Icons';
 import { mockOrders } from '../data/orders';
 import { productsData } from '../data/products';
 
@@ -23,9 +23,18 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
     const [activeSubTab, setActiveSubTab] = useState<'active' | 'rejected'>('active');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [popUrl, setPopUrl] = useState<string | null>(null);
+    
+    // Create Order Modal State
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [newOrderForm, setNewOrderForm] = useState(initialNewOrderState);
-    
+    const [newOrderItems, setNewOrderItems] = useState<{ product: Product, quantity: number }[]>([]);
+    const [productSearch, setProductSearch] = useState('');
+    const [newOrderPaymentMethod, setNewOrderPaymentMethod] = useState<PaymentMethod>('bank_transfer');
+
+    // Admin POP Upload State
+    const [isUploadingPop, setIsUploadingPop] = useState(false);
+    const [popFile, setPopFile] = useState<File | null>(null);
+
     // Filters
     const [filters, setFilters] = useState({ search: '', startDate: '', endDate: '' });
 
@@ -88,8 +97,6 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         }
     }, [selectedOrder]);
 
-    const pipelineStatuses: OrderStatus[] = ['ORDER_RECEIVED', 'PAYMENT_CONFIRMED', 'PROCESSING', 'ASSIGNED_TO_LOGISTICS'];
-
     const filteredOrders = useMemo(() => {
         let source: Order[];
         if (showArchived) {
@@ -97,7 +104,8 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         } else if (activeSubTab === 'rejected') {
             source = orders.filter(o => o.status === 'LOGISTICS_REJECTED');
         } else {
-            source = orders.filter(o => pipelineStatuses.includes(o.status));
+            // "All Orders" now shows everything that isn't archived or rejected.
+            source = orders.filter(o => o.status !== 'LOGISTICS_REJECTED');
         }
 
         return source.filter(o => {
@@ -106,7 +114,7 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
             const matchesStart = !filters.startDate || orderDate >= new Date(filters.startDate);
             const matchesEnd = !filters.endDate || orderDate <= new Date(filters.endDate + 'T23:59:59');
             return matchesSearch && matchesStart && matchesEnd;
-        });
+        }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [orders, archivedOrders, activeSubTab, filters, showArchived]);
 
     const rejectedCount = useMemo(() => orders.filter(o => o.status === 'LOGISTICS_REJECTED').length, [orders]);
@@ -133,6 +141,36 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         setSelectedOrder(null);
         alert(`Payment confirmed for Order #${orderId}. It is now ready for assignment.`);
     };
+
+    const handleMarkAsPaid = (orderId: number) => {
+        if (confirm("Protocol: This action will bypass the POP upload and directly mark the order as paid. This is for simulating a confirmed online payment. Proceed?")) {
+            const updatedOrders = orders.map(o => {
+                if (o.id === orderId) {
+                    const existingPayment = o.payments?.[0] as Partial<Payment> | undefined;
+                    return { 
+                        ...o, 
+                        status: 'PAYMENT_CONFIRMED' as OrderStatus, 
+                        payments: [{ 
+                            ...existingPayment,
+                            id: existingPayment?.id ?? Date.now(),
+                            order_id: o.id,
+                            payment_method: 'online', // Set method to online
+                            payment_status: 'paid' as PaymentStatus,
+                            amount: existingPayment?.amount ?? o.total_price,
+                            created_at: existingPayment?.created_at ?? new Date().toISOString()
+                        }] 
+                    };
+                }
+                return o;
+            });
+
+            localStorage.setItem('kingzy_all_orders', JSON.stringify(updatedOrders));
+            window.dispatchEvent(new Event('storage'));
+
+            setSelectedOrder(null);
+            alert(`System Override: Order #${orderId} manually confirmed as paid.`);
+        }
+    };
     
     const handleAssignOrder = (orderId: number) => {
         const staffId = selectedLogistics[orderId];
@@ -154,10 +192,13 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
 
     const handleCreateOrder = (e: React.FormEvent) => {
         e.preventDefault();
+        if (newOrderItems.length === 0) {
+            alert("Please add at least one item to the order.");
+            return;
+        }
+
         const mockOrderId = Date.now();
-        const mockProduct1 = productsData.find(p => p.id === 1)!;
-        const mockProduct2 = productsData.find(p => p.id === 2)!;
-        const total = mockProduct1.prices.retail + mockProduct2.prices.retail;
+        const total = newOrderItems.reduce((acc, item) => acc + (item.product.prices.retail * item.quantity), 0);
 
         const newOrder: Order = {
             id: mockOrderId,
@@ -169,11 +210,11 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
             placed_on_behalf_by: profile.email,
             delivery_address: { fullName: newOrderForm.fullName, phone: newOrderForm.phone, street: newOrderForm.street, city: newOrderForm.city, state: newOrderForm.state, zip: '' },
             customer_details: { email: newOrderForm.email, userId: `on-behalf-${Date.now()}` },
-            order_items: [
-                { id: Date.now() + 1, order_id: mockOrderId, product_id: mockProduct1.id, quantity: 1, unit_price: mockProduct1.prices.retail, products: { name: mockProduct1.name, dosage: mockProduct1.dosage, image_url: mockProduct1.image_url, stock_quantity: mockProduct1.stock_quantity } },
-                { id: Date.now() + 2, order_id: mockOrderId, product_id: mockProduct2.id, quantity: 1, unit_price: mockProduct2.prices.retail, products: { name: mockProduct2.name, dosage: mockProduct2.dosage, image_url: mockProduct2.image_url, stock_quantity: mockProduct2.stock_quantity } }
-            ] as any,
-            payments: [{ id: mockOrderId, order_id: mockOrderId, payment_method: 'bank_transfer' as PaymentMethod, payment_status: 'awaiting_confirmation' as PaymentStatus, amount: total, created_at: new Date().toISOString() }] as any,
+            order_items: newOrderItems.map((item, index) => ({
+                id: Date.now() + index, order_id: mockOrderId, product_id: item.product.id, quantity: item.quantity, unit_price: item.product.prices.retail,
+                products: { name: item.product.name, dosage: item.product.dosage, image_url: item.product.image_url, stock_quantity: item.product.stock_quantity }
+            })) as any,
+            payments: [{ id: mockOrderId, order_id: mockOrderId, payment_method: newOrderPaymentMethod, payment_status: newOrderPaymentMethod === 'bank_transfer' ? 'awaiting_confirmation' : 'pending', amount: total, created_at: new Date().toISOString() }] as any,
             order_status_history: [{ id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: profile.email || 'admin' }] as any
         };
 
@@ -181,9 +222,12 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         localStorage.setItem('kingzy_all_orders', JSON.stringify([newOrder, ...currentOrders]));
         window.dispatchEvent(new Event('storage'));
         
-        alert(`Order #${mockOrderId} created on behalf of ${newOrderForm.email} and added to the pipeline.`);
+        alert(`Order #${mockOrderId} created for ${newOrderForm.email} and added to the pipeline.`);
         setIsCreatingOrder(false);
         setNewOrderForm(initialNewOrderState);
+        setNewOrderItems([]);
+        setProductSearch('');
+        setNewOrderPaymentMethod('bank_transfer');
     };
     
      const toggleSelectAll = () => {
@@ -212,37 +256,70 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
     const getStatusBadge = (order: Order) => {
         const payment = order.payments?.[0];
         let statusText: string = order.status.replace(/_/g, ' ');
-        let bgColor = 'bg-gray-100';
-        let textColor = 'text-gray-800';
+        let bgColor = 'bg-gray-100'; let textColor = 'text-gray-800';
 
         switch (order.status) {
             case 'ORDER_RECEIVED':
                 statusText = payment?.payment_status === 'awaiting_confirmation' ? 'AWAITING PAYMENT' : 'NEW ORDER';
-                bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
-                break;
+                bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800'; break;
             case 'PAYMENT_CONFIRMED':
             case 'PROCESSING':
-                statusText = 'PROCESSING';
-                bgColor = 'bg-blue-100'; textColor = 'text-blue-800';
-                break;
             case 'ASSIGNED_TO_LOGISTICS':
-                statusText = 'ASSIGNED';
-                bgColor = 'bg-green-100'; textColor = 'text-green-800';
-                break;
-            case 'LOGISTICS_REJECTED':
-                statusText = 'REJECTED';
-                bgColor = 'bg-red-100'; textColor = 'text-red-700';
-                break;
+            case 'DISPATCHED':
+            case 'IN_TRANSIT':
+                statusText = 'PROCESSING'; bgColor = 'bg-blue-100'; textColor = 'text-blue-800'; break;
+            case 'DELIVERED': statusText = 'DELIVERED'; bgColor = 'bg-green-100'; textColor = 'text-green-800'; break;
+            case 'DELIVERY_CONFIRMED': statusText = 'COMPLETED'; bgColor = 'bg-green-200'; textColor = 'text-green-900'; break;
+            case 'CANCELLED': statusText = 'CANCELLED'; bgColor = 'bg-red-100'; textColor = 'text-red-700'; break;
+            case 'LOGISTICS_REJECTED': statusText = 'REJECTED'; bgColor = 'bg-red-100'; textColor = 'text-red-700'; break;
         }
         return <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${bgColor} ${textColor}`}>{statusText}</span>
     };
+
+    const getFulfillmentStatus = (order: Order) => {
+        const baseClasses = "text-xs font-bold uppercase px-3 py-1.5 rounded-full";
+        switch (order.status) {
+            case 'ASSIGNED_TO_LOGISTICS': return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>Assigned</span>;
+            case 'DISPATCHED': return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Dispatched</span>;
+            case 'IN_TRANSIT': return <span className={`${baseClasses} bg-purple-200 text-purple-900`}>In-Transit</span>;
+            case 'DELIVERED': return <span className={`${baseClasses} bg-green-100 text-green-800`}>Delivered</span>;
+            case 'DELIVERY_CONFIRMED': return <span className={`${baseClasses} bg-green-200 text-green-900`}>Completed</span>;
+            case 'PAYMENT_CONFIRMED':
+            case 'PROCESSING':
+            case 'LOGISTICS_REJECTED':
+                return (
+                    <div className="flex gap-2 items-center">
+                        <select value={selectedLogistics[order.id] || ''} onChange={e => setSelectedLogistics({...selectedLogistics, [order.id]: e.target.value})} className="text-xs font-semibold p-2 border rounded-lg bg-white shadow-sm outline-none focus:border-brand-primary">
+                            <option value="">Assign to...</option>
+                            {mockLogisticsStaff.map(s => <option key={s.id} value={s.id}>{s.email}</option>)}
+                        </select>
+                        <button onClick={() => handleAssignOrder(order.id)} className="bg-brand-primary text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-brand-secondary shadow transition-all">Assign</button>
+                    </div>
+                );
+            case 'ORDER_RECEIVED':
+            default:
+                return <span className="font-semibold text-xs text-gray-400 italic">Awaiting Payment</span>;
+        }
+    };
+    
+    // Create Order Modal Functions
+    const searchedProducts = useMemo(() => {
+        if (!productSearch) return [];
+        return productsData.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).slice(0, 5);
+    }, [productSearch]);
+    
+    const handleAddItem = (product: Product) => { setNewOrderItems(prev => { const existing = prev.find(item => item.product.id === product.id); if (existing) { return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item); } return [...prev, { product, quantity: 1 }]; }); };
+    const handleRemoveItem = (productId: number) => { setNewOrderItems(prev => prev.filter(item => item.product.id !== productId)); };
+    const handleQuantityChange = (productId: number, quantity: number) => { if (quantity < 1) return handleRemoveItem(productId); setNewOrderItems(prev => prev.map(item => item.product.id === productId ? { ...item, quantity } : item)); };
+    const newOrderTotal = useMemo(() => { return newOrderItems.reduce((acc, item) => acc + (item.product.prices.retail * item.quantity), 0); }, [newOrderItems]);
+    const handleUploadPop = (orderId: number) => { if (!popFile) return; alert('Admin Action: Proof of payment uploaded. You may now confirm the payment.'); localStorage.setItem(`proof_for_${orderId}`, 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770119864/sample-receipt_h4q0b3.jpg'); const url = localStorage.getItem(`proof_for_${orderId}`); setPopUrl(url); setIsUploadingPop(false); setPopFile(null); };
 
     return (
         <div className="space-y-6 animate-fadeIn">
             {/* Header and Filters */}
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div className="flex bg-gray-100 p-1 rounded-full border shadow-sm">
-                    <button onClick={() => {setActiveSubTab('active'); setShowArchived(false);}} className={`px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all ${activeSubTab === 'active' && !showArchived ? 'bg-white shadow text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Live Pipeline</button>
+                    <button onClick={() => {setActiveSubTab('active'); setShowArchived(false);}} className={`px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all ${activeSubTab === 'active' && !showArchived ? 'bg-white shadow text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>All Orders</button>
                     <button onClick={() => {setActiveSubTab('rejected'); setShowArchived(false);}} className={`px-6 py-2 rounded-full font-bold text-xs uppercase flex gap-2 items-center transition-all ${activeSubTab === 'rejected' && !showArchived ? 'bg-red-600 shadow text-white' : 'text-red-500 hover:bg-red-50'}`}>Rejections {rejectedCount > 0 && <span className="bg-white text-red-600 px-2 py-0.5 rounded-full text-[10px]">{rejectedCount}</span>}</button>
                     <button onClick={() => setShowArchived(true)} className={`px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all ${showArchived ? 'bg-brand-dark shadow text-white' : 'text-gray-500 hover:text-gray-700'}`}>Archives ({archivedOrders.length})</button>
                 </div>
@@ -273,7 +350,7 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
                     <table className="w-full text-left">
                         <thead className="bg-gray-50/30 text-xs font-semibold uppercase text-gray-500 tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 w-12 text-center"></th><th className="px-6 py-4">Order Details</th><th className="px-6 py-4">Status</th><th className="px-6 py-4">Logistics Assignment</th><th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-4 w-12 text-center"></th><th className="px-6 py-4">Order Details</th><th className="px-6 py-4">Status</th><th className="px-6 py-4">Fulfillment</th><th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -282,25 +359,7 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
                                     <td className="px-6 py-4 text-center"><input type="checkbox" checked={selectedOrderIds.has(order.id)} onChange={() => {const newSet = new Set(selectedOrderIds); newSet.has(order.id) ? newSet.delete(order.id) : newSet.add(order.id); setSelectedOrderIds(newSet);}} className="w-5 h-5 rounded border-gray-300 text-brand-primary focus:ring-brand-primary" /></td>
                                     <td className="px-6 py-4"><p className="font-bold text-brand-dark">#{order.id}</p><p className="text-xs text-gray-500 font-medium truncate max-w-xs">{order.customer_details.email}</p></td>
                                     <td className="px-6 py-4">{getStatusBadge(order)}</td>
-                                    <td className="px-6 py-4">
-                                         {!showArchived ? (
-                                            <>
-                                                {order.status === 'ASSIGNED_TO_LOGISTICS' ? (
-                                                    <span className="font-semibold text-xs text-white bg-accent-green px-3 py-1.5 rounded-full">Assigned</span>
-                                                ) : ['PAYMENT_CONFIRMED', 'PROCESSING', 'LOGISTICS_REJECTED'].includes(order.status) ? (
-                                                    <div className="flex gap-2 items-center">
-                                                        <select value={selectedLogistics[order.id] || ''} onChange={e => setSelectedLogistics({...selectedLogistics, [order.id]: e.target.value})} className="text-xs font-semibold p-2 border rounded-lg bg-white shadow-sm outline-none focus:border-brand-primary">
-                                                            <option value="">Assign to...</option>
-                                                            {mockLogisticsStaff.map(s => <option key={s.id} value={s.id}>{s.email}</option>)}
-                                                        </select>
-                                                        <button onClick={() => handleAssignOrder(order.id)} className="bg-brand-primary text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-brand-secondary shadow transition-all">Assign</button>
-                                                    </div>
-                                                ) : (
-                                                    <span className="font-semibold text-xs text-gray-400 italic">Payment Pending</span>
-                                                )}
-                                            </>
-                                        ) : <span className="text-xs font-bold text-gray-400 italic">ARCHIVED</span>}
-                                    </td>
+                                    <td className="px-6 py-4">{!showArchived ? getFulfillmentStatus(order) : <span className="text-xs font-bold text-gray-400 italic">ARCHIVED</span>}</td>
                                     <td className="px-6 py-4 text-right"><button onClick={() => setSelectedOrder(order)} className="p-2 bg-gray-100 text-gray-600 hover:bg-brand-primary hover:text-white rounded-lg transition-all shadow-sm"><EyeIcon className="w-5 h-5"/></button></td>
                                 </tr>
                             ))}
@@ -319,51 +378,28 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div><h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Customer Details</h4><p><strong>Name:</strong> {selectedOrder.delivery_address.fullName}</p><p><strong>Email:</strong> {selectedOrder.customer_details.email}</p><p><strong>Phone:</strong> {selectedOrder.delivery_address.phone}</p></div><div><h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Delivery Address</h4><p>{selectedOrder.delivery_address.street}</p><p>{selectedOrder.delivery_address.city}, {selectedOrder.delivery_address.state}</p></div></div>
                             <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Order Items</h4>
                             <div className="space-y-3 mb-6">{selectedOrder.order_items?.map(item => (<div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg"><img src={item.products?.image_url} alt={item.products?.name} className="w-16 h-16 object-contain rounded bg-white p-1"/><div className="flex-grow"><p className="font-semibold">{item.products?.name}</p><p className="text-sm text-gray-600">{item.quantity} x ₦{item.unit_price.toLocaleString()}</p></div><p className="font-bold text-right">₦{(item.quantity * item.unit_price).toLocaleString()}</p></div>))}</div>
+                            
+                            {selectedOrder.placed_on_behalf_by && selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && !popUrl && (
+                                <div className="border-t pt-4 mt-4"><h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Admin Payment Actions</h4><div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 flex flex-col sm:flex-row gap-4"><button onClick={() => setIsUploadingPop(true)} className="flex-1 font-bold py-2 px-4 rounded-md bg-yellow-400 text-black hover:bg-yellow-500 transition-colors">Upload Bank Transfer POP</button><button onClick={() => handleMarkAsPaid(selectedOrder.id)} className="flex-1 font-bold py-2 px-4 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors">Mark as Paid (Sim. Online)</button></div></div>
+                            )}
+
                             {selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && (
-                                <div className="border-t pt-4">
-                                    <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Proof of Payment</h4>
-                                    {popUrl ? <img src={popUrl} alt="Proof of payment" className="max-h-80 w-auto rounded-md border shadow-sm"/> : <p className="text-gray-500 italic">Customer has not uploaded proof of payment yet.</p>}
-                                </div>
+                                <div className="border-t pt-4 mt-4"><h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Proof of Payment</h4>{popUrl ? <img src={popUrl} alt="Proof of payment" className="max-h-80 w-auto rounded-md border shadow-sm"/> : <p className="text-gray-500 italic">Customer has not uploaded proof of payment yet.</p>}</div>
                             )}
                         </div>
-                        <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
-                            <button onClick={() => setSelectedOrder(null)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Close</button>
-                            {selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && popUrl && (<button onClick={() => handleConfirmPayment(selectedOrder.id)} className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Confirm Payment</button>)}
-                        </div>
+                        <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl"><button onClick={() => setSelectedOrder(null)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Close</button>{selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && popUrl && (<button onClick={() => handleConfirmPayment(selectedOrder.id)} className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Confirm Payment</button>)}</div>
                     </div>
                 </div>
             )}
 
             {/* CREATE ORDER MODAL */}
             {isCreatingOrder && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-scaleIn">
-                        <form onSubmit={handleCreateOrder}>
-                            <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold text-brand-dark">Manual Order Intake Protocol</h3><button type="button" onClick={() => setIsCreatingOrder(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button></div>
-                            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
-                                <p className="text-sm bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-200">This form is for creating an order on behalf of a customer. Product items will be pre-filled for this demo.</p>
-                                <fieldset className="space-y-3"><legend className="font-semibold mb-1">Customer Details</legend>
-                                    <input required value={newOrderForm.email} onChange={e => setNewOrderForm({...newOrderForm, email: e.target.value})} placeholder="Customer Email" className="w-full p-2 border rounded-md" />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input required value={newOrderForm.fullName} onChange={e => setNewOrderForm({...newOrderForm, fullName: e.target.value})} placeholder="Full Name" className="w-full p-2 border rounded-md" />
-                                        <input required value={newOrderForm.phone} onChange={e => setNewOrderForm({...newOrderForm, phone: e.target.value})} placeholder="Phone Number" className="w-full p-2 border rounded-md" />
-                                    </div>
-                                </fieldset>
-                                <fieldset className="space-y-3"><legend className="font-semibold mb-1">Delivery Address</legend>
-                                    <input required value={newOrderForm.street} onChange={e => setNewOrderForm({...newOrderForm, street: e.target.value})} placeholder="Street Address" className="w-full p-2 border rounded-md" />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input required value={newOrderForm.city} onChange={e => setNewOrderForm({...newOrderForm, city: e.target.value})} placeholder="City" className="w-full p-2 border rounded-md" />
-                                        <input required value={newOrderForm.state} onChange={e => setNewOrderForm({...newOrderForm, state: e.target.value})} placeholder="State" className="w-full p-2 border rounded-md" />
-                                    </div>
-                                </fieldset>
-                            </div>
-                            <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
-                                <button type="button" onClick={() => setIsCreatingOrder(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-                                <button type="submit" className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Create Order</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl animate-scaleIn"><form onSubmit={handleCreateOrder}><div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold text-brand-dark">Manual Order Intake Protocol</h3><button type="button" onClick={() => setIsCreatingOrder(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button></div><div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-8"><div className="space-y-4"><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">1. Customer Details</legend><input required value={newOrderForm.email} onChange={e => setNewOrderForm({...newOrderForm, email: e.target.value})} placeholder="Customer Email" className="w-full p-2 border rounded-md" /><div className="grid grid-cols-2 gap-4"><input required value={newOrderForm.fullName} onChange={e => setNewOrderForm({...newOrderForm, fullName: e.target.value})} placeholder="Full Name" className="w-full p-2 border rounded-md" /><input required value={newOrderForm.phone} onChange={e => setNewOrderForm({...newOrderForm, phone: e.target.value})} placeholder="Phone Number" className="w-full p-2 border rounded-md" /></div></fieldset><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">2. Delivery Address</legend><input required value={newOrderForm.street} onChange={e => setNewOrderForm({...newOrderForm, street: e.target.value})} placeholder="Street Address" className="w-full p-2 border rounded-md" /><div className="grid grid-cols-2 gap-4"><input required value={newOrderForm.city} onChange={e => setNewOrderForm({...newOrderForm, city: e.target.value})} placeholder="City" className="w-full p-2 border rounded-md" /><input required value={newOrderForm.state} onChange={e => setNewOrderForm({...newOrderForm, state: e.target.value})} placeholder="State" className="w-full p-2 border rounded-md" /></div></fieldset><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">4. Payment Method</legend><div className="flex gap-4"><label className="flex items-center gap-2"><input type="radio" name="payment" value="bank_transfer" checked={newOrderPaymentMethod === 'bank_transfer'} onChange={() => setNewOrderPaymentMethod('bank_transfer')} /> Bank Transfer</label><label className="flex items-center gap-2"><input type="radio" name="payment" value="online" checked={newOrderPaymentMethod === 'online'} onChange={() => setNewOrderPaymentMethod('online')} /> Online (Card)</label></div></fieldset></div><div className="space-y-4"><fieldset><legend className="font-semibold text-lg mb-2">3. Order Items</legend><div className="relative mb-2"><input type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Search for products to add..." className="w-full p-2 border rounded-md" />{searchedProducts.length > 0 && <div className="absolute w-full bg-white border rounded-md shadow-lg mt-1 z-10">{searchedProducts.map(p => (<button type="button" key={p.id} onClick={() => handleAddItem(p)} className="w-full text-left p-2 hover:bg-gray-100">{p.name}</button>))}</div>}</div><div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md bg-gray-50">{newOrderItems.length === 0 ? <p className="text-center text-gray-400 p-4">No items added.</p> : newOrderItems.map(item => ( <div key={item.product.id} className="flex items-center gap-2 bg-white p-1 rounded"><p className="flex-grow text-sm">{item.product.name}</p><input type="number" value={item.quantity} onChange={e => handleQuantityChange(item.product.id, parseInt(e.target.value))} className="w-16 p-1 border rounded" /><button type="button" onClick={() => handleRemoveItem(item.product.id)} className="text-red-500 p-1"><TrashIcon className="w-4 h-4" /></button></div> ))}</div><div className="text-right font-bold text-xl mt-4">Total: ₦{newOrderTotal.toLocaleString()}</div></fieldset></div></div><div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl"><button type="button" onClick={() => setIsCreatingOrder(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button><button type="submit" className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Create Order</button></div></form></div></div>
+            )}
+            
+            {/* POP UPLOAD MODAL (ADMIN) */}
+            {isUploadingPop && selectedOrder && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"><div className="bg-white rounded-lg shadow-xl w-full max-w-lg"><div className="flex justify-between items-center p-4 border-b"><h3 className="text-xl font-semibold">Upload Proof of Payment for Order #{selectedOrder.id}</h3><button type="button" onClick={() => { setIsUploadingPop(false); setPopFile(null); }}><XIcon className="w-6 h-6"/></button></div><div className="p-6"><p className="text-sm text-gray-600 mb-4">Upload the customer's bank transfer receipt. This will allow you to confirm the payment.</p><label htmlFor="admin-pop-upload" className="relative cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-6 text-center block hover:border-brand-primary"><CloudUploadIcon className="w-12 h-12 mx-auto text-gray-400" /><span className="mt-2 block text-sm font-semibold text-gray-600">{popFile ? popFile.name : 'Click to browse or drag & drop'}</span><input id="admin-pop-upload" type="file" accept="image/*,.pdf" className="sr-only" onChange={(e) => setPopFile(e.target.files ? e.target.files[0] : null)} /></label></div><div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg"><button type="button" onClick={() => { setIsUploadingPop(false); setPopFile(null); }} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Cancel</button><button onClick={() => handleUploadPop(selectedOrder.id)} disabled={!popFile} className="bg-accent-green text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed">Submit for Verification</button></div></div></div>
             )}
         </div>
     );
