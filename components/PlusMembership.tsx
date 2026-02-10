@@ -76,7 +76,7 @@ const PlusMembership: React.FC<PlusMembershipProps> = ({ onNavigate }) => {
                             Join the elite circle of Kingzy partners and enjoy benefits tailored for the modern healthcare professional.
                         </p>
                         <button 
-                            onClick={() => onNavigate({ name: 'auth', isPlatinum: true })}
+                            onClick={() => onNavigate({ name: 'pharmacists_public', isPlatinum: true })}
                             className="bg-yellow-500 hover:bg-yellow-400 text-brand-dark font-black py-5 px-12 rounded-full text-xl shadow-2xl transform hover:scale-105 transition-all"
                         >
                             JOIN THE PLATINUM CLUSTER

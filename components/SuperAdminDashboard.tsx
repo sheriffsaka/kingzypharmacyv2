@@ -33,11 +33,19 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
     const [adminForm, setAdminForm] = useState({ email: '', role: 'admin' as UserRole, approval_status: 'approved' as 'approved' | 'pending' });
 
     // Global System Configuration (Persistent via LocalStorage)
-    const [activeSettingsView, setActiveSettingsView] = useState<'main' | 'operations' | 'analytics'>('main');
+    const [activeSettingsView, setActiveSettingsView] = useState<'main' | 'operations' | 'analytics' | 'banking'>('main');
     const [systemConfig, setSystemConfig] = useState(() => {
         const saved = localStorage.getItem('kingzy_system_config');
         return saved ? JSON.parse(saved) : {
-            deliveryFee: 500,
+            deliveryConfig: {
+                flatRate: 500,
+                freeDeliveryThreshold: 50000
+            },
+            bankDetails: {
+                accountName: 'Kingzy Pharmaceuticals Ltd.',
+                accountNumber: '0123456789',
+                bankName: 'Zenith Bank Plc'
+            },
             fuelAllowance: 45000,
             minWholesaleOrder: 50000,
             taxPercentage: 7.5,
@@ -96,6 +104,28 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
         }
         setIsModalOpen(false);
     };
+    
+    const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type } = e.target;
+        const [section, key] = name.split('.');
+        const val = type === 'number' ? Number(value) : value;
+
+        if (section && key) {
+            setSystemConfig((prev: any) => ({
+                ...prev,
+                [section]: {
+                    ...prev[section],
+                    [key]: val
+                }
+            }));
+        } else {
+             setSystemConfig((prev: any) => ({
+                ...prev,
+                [name]: val
+            }));
+        }
+    };
+
 
     return (
         <div className="container mx-auto px-4 py-8 pb-24">
@@ -123,161 +153,68 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
             </div>
 
             {activeTab === 'admins' && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 animate-fadeIn">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-                        <h2 className="text-xl font-bold text-brand-dark uppercase tracking-wider">Manage Admin Accounts</h2>
-                        <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="relative flex-grow">
-                                <input type="text" placeholder="Filter by user email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand-primary transition-all text-sm font-medium shadow-inner" />
-                                <SearchIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            </div>
-                            <button onClick={handleOpenCreateModal} className="bg-brand-primary text-white px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide hover:bg-brand-secondary transition-all shadow-md">+ Add Admin</button>
+                <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                        <h2 className="text-xl font-bold text-brand-dark">Administrator Access Control</h2>
+                        <div className="flex gap-4 w-full md:w-auto">
+                            <div className="relative flex-grow"><input type="search" placeholder="Search admins..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-primary" /><SearchIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /></div>
+                            <button onClick={handleOpenCreateModal} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-brand-secondary transition-all shadow-md">Add New Admin</button>
                         </div>
                     </div>
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 tracking-wider">
-                                <tr>
-                                    <th className="py-4 px-6">Identity</th>
-                                    <th className="py-4 px-6">Access Level</th>
-                                    <th className="py-4 px-6">Status</th>
-                                    <th className="py-4 px-6 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredAdmins.map(admin => (
-                                    <tr key={admin.id} className="hover:bg-gray-50 group transition-colors">
-                                        <td className="py-4 px-6 font-semibold text-brand-dark">{admin.email}</td>
-                                        <td className="py-4 px-6"><span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">{admin.role.replace('_', ' ')}</span></td>
-                                        <td className="py-4 px-6"><span className={`text-xs font-bold uppercase tracking-wider ${admin.approval_status === 'approved' ? 'text-accent-green' : 'text-red-500'}`}>● {admin.approval_status}</span></td>
-                                        <td className="py-4 px-6 text-right">
-                                            <div className="flex justify-end gap-3">
-                                                <button onClick={() => handleOpenEditModal(admin)} className="p-2 bg-gray-100 text-gray-600 hover:bg-brand-primary hover:text-white rounded-lg transition-all shadow-sm"><EyeIcon className="w-5 h-5" /></button>
-                                                <button onClick={() => handleDeleteAdmin(admin.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm"><TrashIcon className="w-5 h-5" /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 tracking-wider"><tr><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Status</th><th className="p-4">Onboarded</th><th className="p-4 text-right">Actions</th></tr></thead><tbody className="divide-y divide-gray-100">{filteredAdmins.map(admin => (<tr key={admin.id} className="hover:bg-gray-50 text-sm">
+                        <td className="p-4 font-semibold text-gray-800">{admin.email}</td>
+                        <td className="p-4"><span className={`px-3 py-1 rounded-full font-bold text-xs ${admin.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{admin.role.replace('_', ' ')}</span></td>
+                        <td className="p-4"><span className={`px-3 py-1 rounded-full font-bold text-xs ${admin.approval_status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{admin.approval_status}</span></td>
+                        <td className="p-4 text-gray-500">{new Date(admin.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 text-right space-x-4"><button onClick={() => handleOpenEditModal(admin)} className="font-bold text-brand-primary hover:underline">Edit</button><button onClick={() => handleDeleteAdmin(admin.id)} className="font-bold text-red-500 hover:underline">Revoke</button></td>
+                    </tr>))}</tbody></table></div>
                 </div>
             )}
+             {activeTab === 'orders' && profile && <AdminOrderManagement profile={profile} />}
 
+            {activeTab === 'activity' && (
+                <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn"><h2 className="text-xl font-bold text-brand-dark mb-6">Administrator Audit Ledger</h2><div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 tracking-wider"><tr><th className="p-4">Timestamp</th><th className="p-4">Admin</th><th className="p-4">Action</th><th className="p-4">Target/Details</th></tr></thead><tbody className="divide-y divide-gray-100">{mockActivities.map(act => (<tr key={act.id} className="hover:bg-gray-50 text-sm"><td className="p-4 text-gray-500">{act.timestamp}</td><td className="p-4 font-semibold text-gray-800">{act.adminEmail}</td><td className="p-4">{act.action}</td><td className="p-4 text-gray-600 font-mono text-xs">{act.target}</td></tr>))}</tbody></table></div></div>
+            )}
+            
             {activeTab === 'global_settings' && (
-                <div className="space-y-8 animate-fadeIn">
-                    {activeSettingsView === 'main' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-2xl border border-gray-100 shadow-lg hover:border-brand-primary transition-all cursor-pointer group" onClick={() => setActiveSettingsView('operations')}>
-                                <div className="bg-brand-primary text-white w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform font-black text-2xl">₦</div>
-                                <h3 className="text-2xl font-bold text-brand-dark mb-3 uppercase tracking-wider">Operational Constants</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-6">Modify delivery overheads, staff fuel subsidies, and commercial order minimums.</p>
-                                <button className="w-full bg-brand-primary text-white py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-brand-secondary shadow-md transition-all">Configure Parameters</button>
-                            </div>
-                            <div className="bg-white p-10 rounded-2xl border border-gray-100 shadow-lg hover:border-brand-primary transition-all cursor-pointer group" onClick={() => setActiveSettingsView('analytics')}>
-                                <div className="bg-brand-dark text-white w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform font-black text-2xl">📈</div>
-                                <h3 className="text-2xl font-bold text-brand-dark mb-3 uppercase tracking-wider">Market Intelligence</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-6">Analyze transaction density, fulfillment speeds, and category revenue performance.</p>
-                                <button className="w-full bg-brand-dark text-white py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-black shadow-md transition-all">Review Insights</button>
-                            </div>
+                <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
+                    <h2 className="text-xl font-bold text-brand-dark mb-6">Global System Parameters</h2>
+                    
+                    {activeSettingsView === 'main' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <button onClick={() => setActiveSettingsView('operations')} className="group p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-white transition-all text-left space-y-2"><h3 className="text-lg font-bold text-brand-dark">Delivery & Operations</h3><p className="text-sm text-gray-500">Configure logistics fuel subsidy, delivery fees, and order thresholds.</p></button>
+                            <button onClick={() => setActiveSettingsView('analytics')} className="group p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-white transition-all text-left space-y-2"><h3 className="text-lg font-bold text-brand-dark">Financials & Discounts</h3><p className="text-sm text-gray-500">Set system-wide tax rates and baseline customer loyalty discounts.</p></button>
+                            <button onClick={() => setActiveSettingsView('banking')} className="group p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-white transition-all text-left space-y-2"><h3 className="text-lg font-bold text-brand-dark">Payment & Banking</h3><p className="text-sm text-gray-500">Manage company bank account details for customer payments.</p></button>
                         </div>
-                    )}
-
-                    {activeSettingsView === 'operations' && (
-                        <div className="bg-white p-10 rounded-2xl border shadow-xl max-w-5xl mx-auto animate-scaleIn relative overflow-hidden">
-                            <div className="flex justify-between items-center mb-10">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-brand-dark uppercase tracking-wider">Global Parameters</h3>
-                                    <p className="text-gray-500 font-medium text-sm mt-1">Adjust system-wide operational constants</p>
-                                </div>
-                                <button onClick={() => setActiveSettingsView('main')} className="bg-gray-100 p-2 rounded-full hover:bg-red-100 hover:text-red-500 transition-all shadow-sm"><XIcon className="w-6 h-6"/></button>
-                            </div>
-                            <form onSubmit={handleSaveConfig} className="space-y-10">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {/* Logistics */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <h4 className="text-xs font-bold uppercase text-brand-primary tracking-widest border-b-2 border-brand-primary/20 pb-2">Logistics</h4>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Delivery Fee (Retail)</label>
-                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-primary">₦</span><input type="number" value={systemConfig.deliveryFee} onChange={e => setSystemConfig({...systemConfig, deliveryFee: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-primary font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Staff Petrol Allowance</label>
-                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-primary">₦</span><input type="number" value={systemConfig.fuelAllowance} onChange={e => setSystemConfig({...systemConfig, fuelAllowance: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-primary font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                    </div>
-                                    {/* Commercial */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <h4 className="text-xs font-bold uppercase text-brand-secondary tracking-widest border-b-2 border-brand-secondary/20 pb-2">Commercial</h4>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Min. Wholesale Value</label>
-                                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-brand-secondary">₦</span><input type="number" value={systemConfig.minWholesaleOrder} onChange={e => setSystemConfig({...systemConfig, minWholesaleOrder: Number(e.target.value)})} className="w-full p-3 pl-8 border border-gray-200 rounded-lg outline-none focus:border-brand-secondary font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Sales VAT (%)</label>
-                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-brand-secondary">%</span><input type="number" step="0.1" value={systemConfig.taxPercentage} onChange={e => setSystemConfig({...systemConfig, taxPercentage: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-brand-secondary font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                    </div>
-                                    {/* Discounts */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <h4 className="text-xs font-bold uppercase text-accent-green tracking-widest border-b-2 border-accent-green/20 pb-2">Loyalty Discounts</h4>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Retail Buyer (%)</label>
-                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.retailDiscount} onChange={e => setSystemConfig({...systemConfig, retailDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                        <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Wholesale Buyer (%)</label>
-                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.wholesaleDiscount} onChange={e => setSystemConfig({...systemConfig, wholesaleDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                         <div className="p-4 bg-gray-50 rounded-lg border shadow-inner">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Platinum Member (%)</label>
-                                            <div className="relative"><span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-accent-green">%</span><input type="number" step="0.1" value={systemConfig.platinumDiscount} onChange={e => setSystemConfig({...systemConfig, platinumDiscount: Number(e.target.value)})} className="w-full p-3 pr-8 border border-gray-200 rounded-lg outline-none focus:border-accent-green font-bold text-xl bg-white shadow-sm"/></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4 pt-6 border-t mt-6">
-                                    <button type="button" onClick={() => setActiveSettingsView('main')} className="flex-1 py-3 bg-gray-100 font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors shadow-sm">Discard</button>
-                                    <button type="submit" className="flex-2 py-3 bg-brand-primary text-white font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-brand-secondary shadow-lg transition-all transform hover:-translate-y-1">Save & Sync</button>
-                                </div>
-                            </form>
-                        </div>
+                    ) : (
+                         <form onSubmit={handleSaveConfig} className="space-y-8">
+                            {activeSettingsView === 'operations' && (
+                                <fieldset className="p-6 border rounded-lg animate-fadeIn"><legend className="text-lg font-bold px-2">Delivery & Operations</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"><div><label className="font-semibold text-sm">Flat Rate Delivery Fee (₦)</label><input type="number" name="deliveryConfig.flatRate" value={systemConfig.deliveryConfig.flatRate} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Free Delivery Threshold (₦)</label><input type="number" name="deliveryConfig.freeDeliveryThreshold" value={systemConfig.deliveryConfig.freeDeliveryThreshold} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Logistics Fuel Allowance (₦)</label><input type="number" name="fuelAllowance" value={systemConfig.fuelAllowance} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Min. Wholesale Order (₦)</label><input type="number" name="minWholesaleOrder" value={systemConfig.minWholesaleOrder} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div></div></fieldset>
+                            )}
+                             {activeSettingsView === 'analytics' && (
+                                <fieldset className="p-6 border rounded-lg animate-fadeIn"><legend className="text-lg font-bold px-2">Financials & Discounts</legend><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4"><div><label className="font-semibold text-sm">System VAT (%)</label><input type="number" name="taxPercentage" value={systemConfig.taxPercentage} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Retail Loyalty Discount (%)</label><input type="number" name="retailDiscount" value={systemConfig.retailDiscount} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Wholesale Loyalty Discount (%)</label><input type="number" name="wholesaleDiscount" value={systemConfig.wholesaleDiscount} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm text-yellow-600">Platinum Cluster Discount (%)</label><input type="number" name="platinumDiscount" value={systemConfig.platinumDiscount} onChange={handleConfigChange} className="w-full mt-1 p-2 border-2 border-yellow-300 rounded-md" /></div></div></fieldset>
+                            )}
+                             {activeSettingsView === 'banking' && (
+                                <fieldset className="p-6 border rounded-lg animate-fadeIn"><legend className="text-lg font-bold px-2">Payment & Banking</legend><div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"><div><label className="font-semibold text-sm">Bank Name</label><input type="text" name="bankDetails.bankName" value={systemConfig.bankDetails.bankName} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div><label className="font-semibold text-sm">Account Name</label><input type="text" name="bankDetails.accountName" value={systemConfig.bankDetails.accountName} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div><div className="md:col-span-2"><label className="font-semibold text-sm">Account Number</label><input type="text" name="bankDetails.accountNumber" value={systemConfig.bankDetails.accountNumber} onChange={handleConfigChange} className="w-full mt-1 p-2 border rounded-md" /></div></div></fieldset>
+                            )}
+                            <div className="flex justify-end gap-4"><button type="button" onClick={() => setActiveSettingsView('main')} className="font-bold py-2 px-6 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">Back</button><button type="submit" className="font-bold py-2 px-6 rounded-lg bg-brand-primary text-white hover:bg-brand-secondary shadow-md">Save Global Changes</button></div>
+                        </form>
                     )}
                 </div>
             )}
 
-            {activeTab === 'orders' && profile && (<div className="animate-fadeIn"><AdminOrderManagement profile={profile} /></div>)}
-            {activeTab === 'activity' && (<div className="bg-white rounded-lg shadow-lg border p-8 animate-fadeIn"><h2 className="text-xl font-bold text-brand-dark mb-6">Platform Integrity Log</h2><div className="space-y-3">{mockActivities.map(activity => (<div key={activity.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border"><div className="flex gap-4 items-center"><div className="w-2 h-2 bg-brand-primary rounded-full"></div><div><p className="font-semibold text-sm text-brand-dark">{activity.action}</p><p className="text-xs text-gray-500">By: <span className="font-medium text-brand-primary">{activity.adminEmail}</span></p></div></div><div className="text-right"><p className="text-sm font-semibold text-gray-800">{activity.target}</p><p className="text-xs text-gray-400">{activity.timestamp}</p></div></div>))}</div></div>)}
-
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-scaleIn">
+             {isModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg animate-scaleIn">
                         <form onSubmit={handleAdminSubmit}>
-                            <div className="p-6 border-b flex justify-between items-center">
-                                <h3 className="text-lg font-bold text-brand-dark">{editingAdmin ? 'Edit Admin Account' : 'Create New Admin'}</h3>
-                                <button type="button" onClick={() => setIsModalOpen(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button>
-                            </div>
+                            <div className="flex justify-between items-center p-4 border-b"><h3 className="text-xl font-semibold">{editingAdmin ? 'Edit Administrator' : 'Create Administrator'}</h3><button type="button" onClick={() => setIsModalOpen(false)}><XIcon className="w-6 h-6"/></button></div>
                             <div className="p-6 space-y-4">
-                                <div><label className="text-sm font-semibold text-gray-600">Email Address</label><input type="email" required value={adminForm.email} onChange={(e) => setAdminForm({...adminForm, email: e.target.value})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"/></div>
-                                <div>
-                                    <label className="text-sm font-semibold text-gray-600">Role</label>
-                                    <select required value={adminForm.role} onChange={(e) => setAdminForm({...adminForm, role: e.target.value as UserRole})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
-                                        <option value="admin">Admin</option>
-                                        <option value="super_admin">Super Admin</option>
-                                        <option value="logistics">Logistics</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-semibold text-gray-600">Status</label>
-                                    <select required value={adminForm.approval_status} onChange={(e) => setAdminForm({...adminForm, approval_status: e.target.value as 'approved' | 'pending'})} className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
-                                        <option value="approved">Approved</option>
-                                        <option value="pending">Pending</option>
-                                    </select>
-                                </div>
+                                <div><label className="text-sm font-semibold">Email</label><input type="email" value={adminForm.email} onChange={e => setAdminForm({...adminForm, email: e.target.value})} className="w-full p-2 border rounded-md" required /></div>
+                                <div><label className="text-sm font-semibold">Role</label><select value={adminForm.role} onChange={e => setAdminForm({...adminForm, role: e.target.value as UserRole})} className="w-full p-2 border rounded-md"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
+                                <div><label className="text-sm font-semibold">Status</label><select value={adminForm.approval_status} onChange={e => setAdminForm({...adminForm, approval_status: e.target.value as 'approved' | 'pending'})} className="w-full p-2 border rounded-md"><option value="approved">Approved</option><option value="pending">Pending</option></select></div>
+                                {!editingAdmin && <div><label className="text-sm font-semibold">Password</label><input type="password" placeholder="Set initial password" className="w-full p-2 border rounded-md" required /></div>}
                             </div>
-                            <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-                                <button type="submit" className="py-2 px-4 bg-brand-primary text-white font-semibold rounded-lg hover:bg-brand-secondary">{editingAdmin ? 'Save Changes' : 'Create Admin'}</button>
-                            </div>
+                            <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg"><button type="button" onClick={() => setIsModalOpen(false)} className="font-bold py-2 px-4 rounded-md bg-gray-200 text-brand-dark hover:bg-gray-300">Cancel</button><button type="submit" className="bg-accent-green text-white font-bold py-2 px-4 rounded-md hover:bg-green-600">Save</button></div>
                         </form>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import { BriefcaseIcon, TruckIcon, ShieldCheckIcon } from './Icons';
 
 interface WholesalePublicPageProps {
   onNavigate: (view: View) => void;
+  isPlatinum?: boolean;
 }
 
 const benefits = [
@@ -26,8 +27,8 @@ const benefits = [
     },
 ];
 
-const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate }) => {
-    const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate, isPlatinum = false }) => {
+    const [mode, setMode] = useState<'signin' | 'signup'>(isPlatinum ? 'signup' : 'signup');
 
     return (
         <div className="bg-white">
@@ -44,7 +45,13 @@ const WholesalePublicPage: React.FC<WholesalePublicPageProps> = ({ onNavigate })
                         {/* Auth Form */}
                         <div className={mode === 'signup' ? "lg:col-span-2" : "lg:col-span-3"}>
                             <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
-                                <WholesaleAuthForm mode={mode} setMode={setMode} />
+                                {isPlatinum && mode === 'signup' && (
+                                    <div className="bg-yellow-100 border-b-4 border-yellow-400 p-4 text-center">
+                                        <h2 className="text-xl font-bold text-yellow-800">Exclusive: Platinum Cluster Onboarding</h2>
+                                        <p className="text-sm text-yellow-700">You are applying for our premium partnership tier. Complete the form below.</p>
+                                    </div>
+                                )}
+                                <WholesaleAuthForm mode={mode} setMode={setMode} isPlatinum={isPlatinum} />
                             </div>
                         </div>
 

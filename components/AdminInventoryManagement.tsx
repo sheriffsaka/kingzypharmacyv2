@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Product, StockStatus, Category } from '../types';
 import { XIcon } from './Icons';
@@ -58,7 +57,12 @@ const AdminInventoryManagement: React.FC = () => {
     };
     
     const handleOpenEditModal = (product: Product) => {
-        setEditingProduct(product);
+        // Ensure technical_details object exists for the form
+        const productWithDetails = {
+            ...product,
+            technical_details: product.technical_details || { active_ingredients: '', pharmacology: '', storage_conditions: '' }
+        };
+        setEditingProduct(productWithDetails);
         setImageFile(null);
         setImagePreview(null);
     };
@@ -83,15 +87,24 @@ const AdminInventoryManagement: React.FC = () => {
     
     const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (!editingProduct) return;
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
+        const finalValue = type === 'number' ? Number(value) : value;
+
         if (name.startsWith('prices.')) {
             const priceField = name.split('.')[1];
             setEditingProduct({
                 ...editingProduct,
                 prices: { ...editingProduct.prices, [priceField]: Number(value) }
             });
-        } else {
-            setEditingProduct({ ...editingProduct, [name]: value });
+        } else if (name.startsWith('technical_details.')) {
+            const detailField = name.split('.')[1];
+             setEditingProduct({
+                ...editingProduct,
+                technical_details: { ...(editingProduct.technical_details || {}), [detailField]: value }
+            });
+        }
+        else {
+            setEditingProduct({ ...editingProduct, [name]: finalValue });
         }
     };
 
@@ -175,21 +188,34 @@ const AdminInventoryManagement: React.FC = () => {
             {/* Edit Product Modal */}
             {editingProduct && (
                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl">
                         <form onSubmit={handleSaveEdit}>
                             <div className="flex justify-between items-center p-4 border-b">
                                 <h3 className="text-xl font-semibold">Edit Product: {editingProduct.name}</h3>
                                 <button type="button" onClick={() => setEditingProduct(null)}><XIcon className="w-6 h-6"/></button>
                             </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-                                <div><label className="text-sm font-semibold">Product Name</label><input name="name" value={editingProduct.name} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
-                                <div><label className="text-sm font-semibold">Dosage</label><input name="dosage" value={editingProduct.dosage} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
-                                <div className="md:col-span-2"><label className="text-sm font-semibold">Description</label><textarea name="description" value={editingProduct.description} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
-                                <div><label className="text-sm font-semibold">Retail Price (₦)</label><input name="prices.retail" type="number" value={editingProduct.prices.retail} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
-                                <div>
-                                    <label className="text-sm font-semibold text-gray-400">Current Stock (Synced)</label>
-                                    <input type="text" value={editingProduct.stock_quantity} disabled className="w-full p-2 border rounded-md bg-gray-100 text-gray-500 cursor-not-allowed font-bold" />
-                                    <p className="text-[10px] text-blue-500 mt-1">Controlled by Offline Inventory System</p>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+                                {/* Basic Details */}
+                                <div className="md:col-span-2 space-y-4">
+                                    <div><label className="text-sm font-semibold">Product Name</label><input name="name" value={editingProduct.name} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
+                                    <div><label className="text-sm font-semibold">Dosage</label><input name="dosage" value={editingProduct.dosage} onChange={handleEditChange} className="w-full p-2 border rounded-md"/></div>
+                                    <div><label className="text-sm font-semibold">Description</label><textarea name="description" value={editingProduct.description} onChange={handleEditChange} className="w-full p-2 border rounded-md" rows={3}/></div>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="text-sm font-semibold">Retail Price (₦)</label>
+                                            <input name="prices.retail" type="number" value={editingProduct.prices.retail} onChange={handleEditChange} className="w-full p-2 border rounded-md"/>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-semibold">Min. Order Qty (Wholesale)</label>
+                                            <input name="min_order_quantity" type="number" value={editingProduct.min_order_quantity} onChange={handleEditChange} className="w-full p-2 border rounded-md"/>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-400">Current Stock (Synced)</label>
+                                            <input type="text" value={editingProduct.stock_quantity} disabled className="w-full p-2 border rounded-md bg-gray-100 text-gray-500 cursor-not-allowed font-bold" />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="text-sm font-semibold">Product Image</label>
@@ -200,6 +226,15 @@ const AdminInventoryManagement: React.FC = () => {
                                             <input id="image-upload" type="file" accept="image/*" className="sr-only" onChange={handleImageChange} />
                                         </label>
                                     </div>
+                                </div>
+                                 {/* Technical Details */}
+                                <div className="md:col-span-2 border-t pt-4 mt-2">
+                                     <h4 className="text-lg font-semibold mb-2">Technical Drug Details</h4>
+                                     <div className="space-y-4">
+                                        <div><label className="text-sm font-semibold">Active Ingredients</label><textarea name="technical_details.active_ingredients" value={editingProduct.technical_details?.active_ingredients || ''} onChange={handleEditChange} className="w-full p-2 border rounded-md" rows={2}/></div>
+                                        <div><label className="text-sm font-semibold">Pharmacology</label><textarea name="technical_details.pharmacology" value={editingProduct.technical_details?.pharmacology || ''} onChange={handleEditChange} className="w-full p-2 border rounded-md" rows={3}/></div>
+                                        <div><label className="text-sm font-semibold">Storage Conditions</label><textarea name="technical_details.storage_conditions" value={editingProduct.technical_details?.storage_conditions || ''} onChange={handleEditChange} className="w-full p-2 border rounded-md" rows={2}/></div>
+                                     </div>
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">

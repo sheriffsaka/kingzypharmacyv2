@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface PersonaProps {
@@ -14,7 +13,7 @@ const Persona: React.FC<PersonaProps> = ({ name, title, bio, imageUrl }) => {
       <img 
         src={imageUrl} 
         alt={`Portrait of ${name}`} 
-        className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-brand-light shadow-sm"
+        className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-brand-light shadow-sm object-cover"
       />
       <h3 className="text-xl font-bold text-brand-dark">{name}</h3>
       <p className="text-brand-secondary font-semibold mb-2">{title}</p>

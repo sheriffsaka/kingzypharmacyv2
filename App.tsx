@@ -80,6 +80,10 @@ const App: React.FC = () => {
             case 'admin': handleNavigation({ name: 'admin' }); break;
             case 'logistics': handleNavigation({ name: 'logistics' }); break;
             case 'wholesale_buyer': handleNavigation({ name: 'wholesale' }); break;
+            case 'general_public':
+              // If user was on the auth page, send them home. Otherwise, let them stay on the page they were on (e.g., Cart) to complete their action.
+              setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
+              break;
             default:
               setCurrentView(prevView => prevView.name === 'auth' ? { name: 'home' } : prevView);
           }
@@ -190,7 +194,7 @@ const App: React.FC = () => {
       case 'wholesale':
         return profile?.role === 'wholesale_buyer' ? <WholesaleDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied. Please log in as a Wholesale Buyer.</p>;
       case 'logistics':
-        return profile?.role === 'logistics' ? <LogisticsDashboard /> : <p className="text-center p-8">Access Denied. Please log in as Logistics personnel.</p>;
+        return profile?.role === 'logistics' ? <LogisticsDashboard profile={profile} /> : <p className="text-center p-8">Access Denied. Please log in as Logistics personnel.</p>;
       case 'buyerDashboard':
         return profile?.role === 'general_public' ? <BuyerDashboard profile={profile} onNavigate={handleNavigation} /> : <p className="text-center p-8">Access Denied. Please log in to view your dashboard.</p>;
       case 'invoicePreview':
@@ -198,7 +202,7 @@ const App: React.FC = () => {
       case 'paymentInstructions':
           return <PaymentInstructionsPage orderId={currentView.orderId} onNavigate={handleNavigation} />;
       case 'pharmacists_public':
-        return <WholesalePublicPage onNavigate={handleNavigation} />;
+        return <WholesalePublicPage onNavigate={handleNavigation} isPlatinum={currentView.isPlatinum} />;
       case 'mireva':
         return <MirevaPage onNavigate={handleNavigation} />;
       case 'healthInsights':

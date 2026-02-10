@@ -1,28 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Order, OrderStatus, OrderItem, Product } from '../types';
+import { Order, OrderStatus, OrderItem, Product, Profile } from '../types';
 import { EyeIcon, XIcon, UserCircleIcon } from './Icons';
 
-// --- MOCK DATA to seed localStorage for demo ---
-const initialLogisticsAssignments: Order[] = [
-    {
-        id: 102, user_id: 'u3', created_at: new Date(Date.now() - 7200000).toISOString(),
-        status: 'ORDER_ACKNOWLEDGED', // Will appear in "Incoming Assignments"
-        total_price: 350000, discount_applied: 35000,
-        delivery_address: { fullName: 'Central Clinic', phone: '09011223344', street: '45 Hospital Rd', city: 'Port Harcourt', state: 'Rivers', zip: '500001' },
-        customer_details: { email: 'clinic.central@test.com', userId: 'u3' },
-        order_items: [{ id: 2, order_id: 102, product_id: 2, quantity: 10, unit_price: 22000, products: { name: 'Ibuprofen (Case)', dosage: 'Case of 48', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png' } }] as any,
-    },
-    {
-        id: 103, user_id: 'u4', created_at: new Date(Date.now() - 86400000).toISOString(),
-        status: 'DISPATCHED', // Will appear in "Active Deliveries"
-        total_price: 180000, discount_applied: 18000,
-        delivery_address: { fullName: 'Express Meds', phone: '08155667788', street: '789 Speedy Ave', city: 'Kano', state: 'Kano', zip: '700001' },
-        customer_details: { email: 'express.meds@pharma.ng', userId: 'u4' },
-        order_items: [{ id: 3, order_id: 103, product_id: 6, quantity: 50, unit_price: 3500, products: { name: 'Artemether & Lumefantrine', dosage: '20/120mg, 24 tabs', image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770051865/Artemether_Lumefantrine-removebg-preview_oszpjn.png' } }] as any,
-    }
-];
+interface DashboardProps {
+    profile: Profile;
+}
 
-const LogisticsDashboard: React.FC = () => {
+const LogisticsDashboard: React.FC<DashboardProps> = ({ profile }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'profile'>('assignments');
     
     // Dynamic fuel allowance pulled from global settings
@@ -81,46 +65,47 @@ const LogisticsDashboard: React.FC = () => {
                 </div>
             )}
             
-            {activeTab === 'assignments' && <MyAssignments />}
-            {activeTab === 'profile' && <MyProfile />}
+            {activeTab === 'assignments' && <MyAssignments profile={profile} />}
+            {activeTab === 'profile' && <MyProfile profile={profile} />}
         </div>
     );
 };
 
-const MyAssignments: React.FC = () => {
-    const [assignedOrders, setAssignedOrders] = useState<Order[]>([]);
+interface MyAssignmentsProps {
+    profile: Profile;
+}
+
+const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
+    const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [updating, setUpdating] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
-        const loadAssignments = () => {
-            let data = localStorage.getItem('logistics_assignments');
-            // Seed data if it's the first time or if the list is empty (e.g., after being cleared)
-            if (!data || JSON.parse(data).length === 0) {
-                console.log('[DEV] Seeding initial logistics assignments for demo.');
-                localStorage.setItem('logistics_assignments', JSON.stringify(initialLogisticsAssignments));
-                data = localStorage.getItem('logistics_assignments'); // Re-read the data
-            }
-            setAssignedOrders(data ? JSON.parse(data) : []);
+        const loadAndSyncOrders = () => {
+            const storedOrdersRaw = localStorage.getItem('kingzy_all_orders');
+            const ordersSource: Order[] = storedOrdersRaw ? JSON.parse(storedOrdersRaw) : [];
+            setAllOrders(ordersSource);
         };
-        
-        loadAssignments(); // Initial load
-        
-        // Listen for subsequent changes from the admin panel
-        window.addEventListener('storage', loadAssignments);
-        
-        return () => window.removeEventListener('storage', loadAssignments);
-    }, []); // Empty dependency array ensures this setup runs only once
 
-    const syncToAdmin = (type: 'ACCEPTED_DISPATCH' | 'REJECTED_DISPATCH' | 'ORDER_STATUS_UPDATE', orderId: number, message: string, severity: 'success' | 'error' | 'info') => {
+        loadAndSyncOrders();
+        window.addEventListener('storage', loadAndSyncOrders);
+        return () => window.removeEventListener('storage', loadAndSyncOrders);
+    }, []);
+
+    const syncToAdmin = (type: 'ACCEPTED_DISPATCH' | 'REJECTED_DISPATCH' | 'ORDER_STATUS_UPDATE', orderId: number, message: string, severity: 'success' | 'error' | 'info', orderPayload?: Order) => {
         const events = JSON.parse(localStorage.getItem('order_events_sync') || '[]');
-        const newEvent = { id: Date.now(), type, orderId, message, severity, timestamp: Date.now() };
+        const newEvent = { id: Date.now(), type, orderId, message, severity, timestamp: Date.now(), order: orderPayload };
         localStorage.setItem('order_events_sync', JSON.stringify([...events, newEvent]));
         localStorage.setItem('admin_notification', JSON.stringify(newEvent));
         window.dispatchEvent(new Event('storage'));
     };
     
-    const updateAssignmentsInStorage = (updatedOrders: Order[]) => {
-        localStorage.setItem('logistics_assignments', JSON.stringify(updatedOrders));
+    const updateOrderStatusInStorage = (orderId: number, newStatus: OrderStatus) => {
+        const currentOrdersRaw = localStorage.getItem('kingzy_all_orders');
+        const currentOrders: Order[] = currentOrdersRaw ? JSON.parse(currentOrdersRaw) : [];
+        const updatedOrders = currentOrders.map(o => 
+            o.id === orderId ? { ...o, status: newStatus } : o
+        );
+        localStorage.setItem('kingzy_all_orders', JSON.stringify(updatedOrders));
         window.dispatchEvent(new Event('storage'));
     };
 
@@ -128,18 +113,23 @@ const MyAssignments: React.FC = () => {
         setUpdating(prev => ({...prev, [orderId]: true}));
         setTimeout(() => {
             syncToAdmin('ACCEPTED_DISPATCH', orderId, `Staff accepted dispatch for Order #${orderId}`, 'success');
-            const updated = assignedOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o) as Order[];
-            updateAssignmentsInStorage(updated);
+            updateOrderStatusInStorage(orderId, 'DISPATCHED');
             setUpdating(prev => ({...prev, [orderId]: false}));
         }, 800);
     };
 
     const handleReject = (orderId: number) => {
         if (confirm("Protocol: Confirm rejection of this consignment assignment? Immediate Admin alert will be dispatched.")) {
-            syncToAdmin('REJECTED_DISPATCH', orderId, `URGENT: Logistics staff REJECTED assignment for Order #${orderId}!`, 'error');
-            const updated = assignedOrders.filter(o => o.id !== orderId);
-            updateAssignmentsInStorage(updated);
-            alert("Record Sanitized: Assignment returned to Admin queue.");
+            setUpdating(prev => ({...prev, [orderId]: true}));
+            setTimeout(() => {
+                const orderToReject = allOrders.find(o => o.id === orderId);
+                if (orderToReject) {
+                    syncToAdmin('REJECTED_DISPATCH', orderId, `URGENT: Logistics staff REJECTED assignment for Order #${orderId}!`, 'error', orderToReject);
+                    updateOrderStatusInStorage(orderId, 'LOGISTICS_REJECTED');
+                    alert("Record Sanitized: Assignment has been rejected and returned to the Admin queue for review.");
+                }
+                setUpdating(prev => ({...prev, [orderId]: false}));
+            }, 800);
         }
     };
 
@@ -147,20 +137,20 @@ const MyAssignments: React.FC = () => {
         setUpdating(prev => ({...prev, [orderId]: true}));
         setTimeout(() => {
             syncToAdmin('ORDER_STATUS_UPDATE', orderId, `Order #${orderId} state transitioned to ${newStatus}`, 'info');
-            
-            let updated;
-            if (newStatus === 'DELIVERED') {
-                updated = assignedOrders.filter(o => o.id !== orderId);
-            } else {
-                updated = assignedOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o) as Order[];
-            }
-            updateAssignmentsInStorage(updated);
+            updateOrderStatusInStorage(orderId, newStatus);
             setUpdating(prev => ({...prev, [orderId]: false}));
         }, 800);
     };
 
-    const newAssignments = assignedOrders.filter(o => o.status === 'ORDER_ACKNOWLEDGED');
-    const activeDeliveries = assignedOrders.filter(o => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
+    const myId = profile.id;
+    const myAssignments = allOrders.filter(o => {
+        const latestAssignment = o.logistics_assignments?.[o.logistics_assignments.length - 1];
+        return latestAssignment?.profiles.id === myId;
+    });
+
+    const newAssignments = myAssignments.filter(o => o.status === 'ASSIGNED_TO_LOGISTICS');
+    const activeDeliveries = myAssignments.filter(o => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
+    const rejectedAssignments = myAssignments.filter(o => o.status === 'LOGISTICS_REJECTED');
 
     return (
         <div className="space-y-8 animate-fadeIn">
@@ -177,7 +167,9 @@ const MyAssignments: React.FC = () => {
                                 <div className="flex justify-between items-start mb-4"><h4 className="text-xl font-bold text-brand-dark">Order #{order.id}</h4><span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Pending</span></div>
                                 <div className="space-y-1 mb-6 text-sm"><p className="font-semibold text-gray-500">Destination</p><p className="text-gray-800 font-medium">{order.delivery_address.city}, {order.delivery_address.state}</p></div>
                                 <div className="flex gap-4">
-                                    <button onClick={() => handleReject(order.id)} className="flex-1 bg-red-100 text-red-700 py-3 rounded-lg font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all">Reject</button>
+                                    <button onClick={() => handleReject(order.id)} disabled={updating[order.id]} className="flex-1 bg-red-100 text-red-700 py-3 rounded-lg font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all disabled:bg-gray-300">
+                                        {updating[order.id] ? 'Rejecting...' : 'Reject'}
+                                    </button>
                                     <button onClick={() => handleAccept(order.id)} disabled={updating[order.id]} className="flex-2 bg-brand-primary text-white py-3 px-6 rounded-lg font-bold text-xs uppercase hover:bg-brand-secondary disabled:bg-gray-300 shadow-md">{updating[order.id] ? 'Syncing...' : 'Accept'}</button>
                                 </div>
                             </div>
@@ -211,13 +203,30 @@ const MyAssignments: React.FC = () => {
                     </div>
                 )}
             </div>
+             <div className="bg-white p-6 rounded-lg border shadow-md">
+                <h2 className="text-xl font-semibold text-brand-dark mb-4">Rejected Assignments</h2>
+                {rejectedAssignments.length === 0 ? (
+                    <p className="text-gray-400 text-center py-16">No rejected assignments.</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="text-xs font-semibold uppercase text-gray-500 border-b"><tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Note</th></tr></thead>
+                            <tbody className="divide-y">{rejectedAssignments.map(order => (<tr key={order.id} className="bg-red-50/50"><td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td><td className="px-4 py-4"><span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-red-100 text-red-700">REJECTED</span></td><td className="px-4 py-4 text-sm text-gray-500 italic">Returned to admin for re-assignment.</td></tr>))}</tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
 
-const MyProfile: React.FC = () => {
+const MyProfile: React.FC<{ profile: Profile }> = ({ profile }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [profileData, setProfileData] = useState({ name: 'Joshua Delivery', vehicle: 'Van #12 (LAG-552-AB)', depot: 'Ikeja Central Depot', phone: '0802 345 6789' });
+    const mockData = { vehicle: 'Van #12 (LAG-552-AB)', depot: 'Ikeja Central Depot', phone: '0802 345 6789' };
+    const [profileData, setProfileData] = useState({ 
+        name: profile.email?.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Joshua Delivery', 
+        ...mockData 
+    });
     const [formState, setFormState] = useState(profileData);
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
@@ -235,6 +244,7 @@ const MyProfile: React.FC = () => {
                 <div className="w-24 h-24 bg-brand-light rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white shadow-lg"><span className="text-4xl font-black text-brand-primary">{profileData.name.split(' ').map(n => n[0]).join('')}</span></div>
                 <h2 className="text-2xl font-bold text-brand-dark">{profileData.name}</h2>
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-wider mt-1">Operations Specialist</p>
+                <p className="text-sm font-semibold text-brand-primary mt-1">{profile.email}</p>
             </div>
             <div className="space-y-4 text-sm">
                 <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg"><p className="font-semibold text-gray-500 uppercase">Vehicle</p><p className="font-bold text-brand-dark">{profileData.vehicle}</p></div>

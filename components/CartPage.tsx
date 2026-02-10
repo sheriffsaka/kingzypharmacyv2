@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useCart } from '../contexts/CartContext';
-import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod, View } from '../types';
+import { Profile, DeliveryAddress, PaymentStatus, PaymentMethod, View, Order } from '../types';
 import { supabase } from '../lib/supabase/client';
-import { TrashIcon } from './Icons';
+import { TrashIcon, XIcon } from './Icons';
+import { mockOrders } from '../data/orders';
 
 interface CartPageProps {
   profile: Profile | null;
@@ -14,7 +14,7 @@ interface CartPageProps {
 }
 
 const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShopping, onNavigate }) => {
-  const { cart, removeFromCart, updateQuantity, clearCart, cartItemCount, subtotal, loyaltyDiscountValue, total, getPriceForQuantity } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, cartItemCount, subtotal, loyaltyDiscountValue, total, deliveryFee, getPriceForQuantity } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
     fullName: '', phone: '', street: '', city: '', state: '', zip: ''
   });
@@ -22,6 +22,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
   const [acknowledge, setAcknowledge] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   const isWholesale = profile?.role === 'wholesale_buyer';
 
@@ -50,27 +51,62 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
     return Object.values(deliveryAddress).every(field => typeof field === 'string' && field.trim() !== '') && acknowledge && cart.length > 0;
   };
   
-  const handleSubmitOrder = async () => {
-      if (!isFormValid() || !session?.user) {
-          setError("Please fill in all delivery details, select a payment method, acknowledge the terms, and ensure your cart is not empty.");
-          return;
-      }
+  const placeOrder = async (currentSession: Session, isGuest: boolean = false) => {
       setIsLoading(true);
       setError(null);
       
       try {
-          // --- MOCK ORDER CREATION ---
-          const mockOrderId = Math.floor(1000 + Math.random() * 9000);
-          console.log(`Simulating order creation for user ${session.user.email}...`);
-          console.log({
-              user_id: session.user.id,
-              total_price: total,
-              payment_method: paymentMethod,
-              status: 'awaiting_confirmation'
-          });
-          await new Promise(res => setTimeout(res, 1000)); // Simulate network delay
-          console.log(`Mock Order #${mockOrderId} created.`);
-          // --------------------------
+          const mockOrderId = Date.now(); // Use timestamp for a unique mock ID
+          const newOrder: Order = {
+            id: mockOrderId,
+            user_id: currentSession.user.id,
+            created_at: new Date().toISOString(),
+            status: 'ORDER_RECEIVED',
+            total_price: total,
+            discount_applied: loyaltyDiscountValue,
+            delivery_address: deliveryAddress,
+            customer_details: {
+                email: isGuest ? deliveryAddress.fullName.replace(/\s/g, '.').toLowerCase() + '@guest-checkout.com' : currentSession.user.email!,
+                userId: currentSession.user.id
+            },
+            order_items: cart.map((item, index) => ({
+                id: Date.now() + index,
+                order_id: mockOrderId,
+                product_id: item.product.id,
+                quantity: item.quantity,
+                unit_price: getPriceForQuantity(item),
+                products: {
+                    name: item.product.name,
+                    dosage: item.product.dosage,
+                    image_url: item.product.image_url,
+                    stock_quantity: item.product.stock_quantity,
+                }
+            })),
+            payments: [{
+                id: mockOrderId,
+                order_id: mockOrderId,
+                payment_method: paymentMethod as PaymentMethod,
+                payment_status: paymentMethod === 'bank_transfer' ? 'awaiting_confirmation' : 'pending',
+                amount: total,
+                created_at: new Date().toISOString(),
+            }],
+            order_status_history: [{
+                id: 1,
+                status: 'ORDER_RECEIVED',
+                updated_at: new Date().toISOString(),
+                updated_by: 'user'
+            }]
+          };
+
+          // --- UNIFIED ORDER DISPATCH LOGIC ---
+          const allOrdersRaw = localStorage.getItem('kingzy_all_orders');
+          const allOrders = allOrdersRaw ? JSON.parse(allOrdersRaw) : mockOrders;
+          const updatedOrders = [newOrder, ...allOrders];
+          
+          localStorage.setItem('kingzy_all_orders', JSON.stringify(updatedOrders));
+          window.dispatchEvent(new Event('storage')); // Notify all components of the update
+          console.log(`[SIMULATION] Order #${mockOrderId} added to central store and dispatched.`);
+          // ---------------------------------------------
 
           clearCart();
           
@@ -88,11 +124,37 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
       }
   };
 
+  const handleSubmitOrder = async () => {
+      if (!isFormValid()) {
+          setError("Please fill in all delivery details, select a payment method, acknowledge the terms, and ensure your cart is not empty.");
+          return;
+      }
+      
+      if (!session) {
+          setShowAuthPrompt(true);
+          return;
+      }
+
+      await placeOrder(session);
+  };
+  
+  const handleGuestCheckout = async () => {
+    setShowAuthPrompt(false);
+    // Create a mock session object for the guest user
+    const mockGuestSession = {
+        user: {
+            id: `guest_${Date.now()}`,
+            email: `guest_${Date.now()}@kingzy.com` // A dummy email
+        }
+    } as Session;
+    await placeOrder(mockGuestSession, true);
+  };
+
   const renderPaymentMethods = () => {
     return (
         <div className="space-y-3">
             <label className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-gray-50 has-[:checked]:bg-brand-light has-[:checked]:border-brand-primary transition-all">
-                <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary" disabled={!session}/>
+                <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} className="h-4 w-4 text-brand-primary focus:ring-brand-secondary"/>
                 <div className="ml-3">
                     <span className="font-semibold text-gray-800">Bank Transfer</span>
                     <p className="text-sm text-gray-500">Securely pay via transfer to our corporate accounts.</p>
@@ -162,14 +224,14 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4">Delivery & Contact Information</h2>
-                 {!session && <p className="text-red-600 bg-red-100 p-3 rounded-md mb-4">Please log in to place an order.</p>}
+                 {!session && <p className="text-blue-600 bg-blue-100 p-3 rounded-md mb-4 text-sm font-semibold">You are checking out as a guest. Fill in your details below.</p>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input name="fullName" value={deliveryAddress.fullName} onChange={handleAddressChange} placeholder="Full Name / Company Name" className="p-2 border rounded-md" disabled={!session} />
-                    <input name="phone" value={deliveryAddress.phone} onChange={handleAddressChange} placeholder="Phone Number" className="p-2 border rounded-md" disabled={!session}/>
-                    <input name="street" value={deliveryAddress.street} onChange={handleAddressChange} placeholder="Street Address" className="md:col-span-2 p-2 border rounded-md" disabled={!session} />
-                    <input name="city" value={deliveryAddress.city} onChange={handleAddressChange} placeholder="City" className="p-2 border rounded-md" disabled={!session} />
-                    <input name="state" value={deliveryAddress.state} onChange={handleAddressChange} placeholder="State" className="p-2 border rounded-md" disabled={!session} />
-                    <input name="zip" value={deliveryAddress.zip} onChange={handleAddressChange} placeholder="Postal Code" className="p-2 border rounded-md" disabled={!session} />
+                    <input name="fullName" value={deliveryAddress.fullName} onChange={handleAddressChange} placeholder="Full Name / Company Name" className="p-2 border rounded-md" />
+                    <input name="phone" value={deliveryAddress.phone} onChange={handleAddressChange} placeholder="Phone Number" className="p-2 border rounded-md" />
+                    <input name="street" value={deliveryAddress.street} onChange={handleAddressChange} placeholder="Street Address" className="md:col-span-2 p-2 border rounded-md" />
+                    <input name="city" value={deliveryAddress.city} onChange={handleAddressChange} placeholder="City" className="p-2 border rounded-md" />
+                    <input name="state" value={deliveryAddress.state} onChange={handleAddressChange} placeholder="State" className="p-2 border rounded-md" />
+                    <input name="zip" value={deliveryAddress.zip} onChange={handleAddressChange} placeholder="Postal Code" className="p-2 border rounded-md" />
                 </div>
             </div>
           </div>
@@ -180,7 +242,10 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                 <div className="space-y-2 text-gray-700">
                     <div className="flex justify-between"><span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span></div>
                      {loyaltyDiscountValue > 0 && <div className="flex justify-between text-green-600"><span>Loyalty Discount</span><span>-₦{loyaltyDiscountValue.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>}
-                    <div className="flex justify-between"><span>Delivery Fee</span><span>₦500.00</span></div>
+                    <div className="flex justify-between">
+                        <span>Delivery Fee</span>
+                        {deliveryFee > 0 ? <span>₦{deliveryFee.toLocaleString(undefined, {minimumFractionDigits: 2})}</span> : <span className="font-bold text-green-600">FREE</span>}
+                    </div>
                     <div className="flex justify-between text-xl font-bold text-brand-dark pt-2 border-t"><span>Total</span><span>₦{total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
                 </div>
 
@@ -191,7 +256,7 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
 
                 <div className="mt-6">
                     <label className="flex items-start space-x-3">
-                        <input type="checkbox" checked={acknowledge} onChange={(e) => setAcknowledge(e.target.checked)} className="mt-1" disabled={!session} />
+                        <input type="checkbox" checked={acknowledge} onChange={(e) => setAcknowledge(e.target.checked)} className="mt-1" />
                         <span className="text-sm text-gray-600">I acknowledge that a qualified pharmacist may contact me to verify prescription details for this order.</span>
                     </label>
                 </div>
@@ -200,13 +265,33 @@ const CartPage: React.FC<CartPageProps> = ({ profile, session, onContinueShoppin
                 
                 <button 
                     onClick={handleSubmitOrder}
-                    disabled={!isFormValid() || isLoading || !session}
+                    disabled={!isFormValid() || isLoading}
                     className="w-full mt-6 bg-brand-primary text-white font-bold py-3 rounded-md hover:bg-brand-secondary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                    {isLoading ? 'Processing...' : submitButtonText}
+                    {isLoading ? 'Processing...' : !session ? 'Proceed to Checkout' : submitButtonText}
                 </button>
              </div>
           </div>
+        </div>
+      )}
+
+      {showAuthPrompt && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white p-8 rounded-lg shadow-xl text-center w-full max-w-sm">
+                <h2 className="text-xl font-bold mb-4">Complete Your Order</h2>
+                <p className="text-gray-600 mb-6">Log in for a faster experience or continue as a guest.</p>
+                <div className="flex flex-col gap-4">
+                    <button onClick={() => onNavigate({ name: 'auth' })} className="w-full bg-brand-primary text-white font-bold py-3 rounded-md hover:bg-brand-secondary transition-colors">
+                        Login or Sign Up
+                    </button>
+                    <button onClick={handleGuestCheckout} className="w-full bg-gray-200 text-brand-dark font-bold py-3 rounded-md hover:bg-gray-300 transition-colors">
+                        Checkout as Guest
+                    </button>
+                </div>
+                <button onClick={() => setShowAuthPrompt(false)} className="mt-6 text-sm text-gray-500 hover:underline">
+                    Cancel
+                </button>
+            </div>
         </div>
       )}
     </div>

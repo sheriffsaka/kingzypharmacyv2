@@ -1,4 +1,3 @@
-
 export interface Category {
   id: number;
   name: string;
@@ -31,6 +30,11 @@ export interface Product {
   image_url: string;
   min_order_quantity: number;
   wholesale_display_unit?: string;
+  technical_details?: {
+    active_ingredients?: string;
+    pharmacology?: string;
+    storage_conditions?: string;
+  };
   // This will be populated after fetching from the DB
   categories?: Category;
 }
@@ -49,7 +53,8 @@ export interface ChatMessage {
 // App Navigation View Type
 export type View = 
   | { name: 'products', categoryId?: number | null }
-  | { name: 'home' | 'chat' | 'admin' | 'superAdmin' | 'wholesale' | 'cart' | 'mireva' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'pharmacists_public' | 'contact' | 'faq' | 'terms' | 'logistics' | 'buyerDashboard' }
+  | { name: 'home' | 'chat' | 'admin' | 'superAdmin' | 'wholesale' | 'cart' | 'mireva' | 'healthInsights' | 'plusMembership' | 'offers' | 'about' | 'orders' | 'contact' | 'faq' | 'terms' | 'logistics' | 'buyerDashboard' }
+  | { name: 'pharmacists_public', isPlatinum?: boolean }
   | { name: 'auth', isPlatinum?: boolean }
   | { name: 'productDetail', productId: number }
   | { name: 'orderSuccess', orderId: number }
@@ -61,14 +66,17 @@ export type View =
 export type UserRole = 'super_admin' | 'admin' | 'wholesale_buyer' | 'general_public' | 'logistics';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type OrderStatus = 
-  | 'ORDER_RECEIVED' 
-  | 'ORDER_ACKNOWLEDGED' 
-  | 'PROCESSING' 
-  | 'DISPATCHED' 
-  | 'IN_TRANSIT' 
-  | 'DELIVERED' 
+  | 'ORDER_RECEIVED'          // Customer places order, payment is 'awaiting_confirmation'
+  | 'PAYMENT_CONFIRMED'       // Admin verifies POP, payment is 'paid'
+  | 'PROCESSING'              // Admin acknowledges payment, ready for assignment
+  | 'ASSIGNED_TO_LOGISTICS'   // Admin assigns to a staff, pending their acceptance
+  | 'LOGISTICS_REJECTED'      // Staff rejects assignment, order goes to Rejections tab
+  | 'DISPATCHED'              // Staff accepts assignment
+  | 'IN_TRANSIT'              // Staff begins delivery
+  | 'DELIVERED'               // Staff confirms delivery
   | 'CANCELLED'
-  | 'DELIVERY_CONFIRMED';
+  | 'ORDER_ACKNOWLEDGED'      // Legacy/general purpose
+  | 'DELIVERY_CONFIRMED';     // Customer confirms receipt
 
 
 export interface Profile {
@@ -156,6 +164,7 @@ export interface Payment {
   verified_at?: string;
   created_at: string;
   receipts?: Receipt[];
+  payment_proof_url?: string; // To hold the mock URL
 }
 
 // Invoice & Receipt Types

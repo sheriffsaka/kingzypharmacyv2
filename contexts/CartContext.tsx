@@ -13,6 +13,7 @@ interface CartContextType {
   subtotal: number;
   loyaltyDiscountValue: number;
   total: number;
+  deliveryFee: number;
   getPriceForQuantity: (item: CartItem) => number;
 }
 
@@ -87,16 +88,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return product.prices?.retail ?? 0;
   };
 
-  const { subtotal, loyaltyDiscountValue, total, cartItemCount } = useMemo(() => {
+  const { subtotal, loyaltyDiscountValue, total, cartItemCount, deliveryFee } = useMemo(() => {
     const sub = cart.reduce((acc, item) => {
       const price = getPriceForQuantity(item);
       return acc + price * item.quantity;
     }, 0);
+    
+    const configStr = localStorage.getItem('kingzy_system_config');
+    const config = configStr ? JSON.parse(configStr) : {
+        deliveryConfig: {
+            mode: 'flat',
+            flatRate: 500,
+            freeDeliveryThreshold: 50000
+        }
+    };
+
+    let fee = 0;
+    if (cart.length > 0) {
+        const { deliveryConfig } = config;
+        if (deliveryConfig && deliveryConfig.freeDeliveryThreshold > 0 && sub >= deliveryConfig.freeDeliveryThreshold) {
+            fee = 0;
+        } else {
+            // Placeholder for more complex modes, falling back to flat rate.
+            fee = deliveryConfig ? (deliveryConfig.flatRate || 500) : 500;
+        }
+    }
 
     const discount = (profile?.loyalty_discount_percentage ?? 0) / 100 * sub;
-    // For simplicity, delivery is a fixed cost if there are items in the cart
-    const deliveryFee = cart.length > 0 ? 500 : 0;
-    const finalTotal = sub - discount + deliveryFee;
+    const finalTotal = sub - discount + fee;
     const count = cart.reduce((total, item) => total + item.quantity, 0);
 
     return {
@@ -104,12 +123,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loyaltyDiscountValue: discount,
       total: finalTotal,
       cartItemCount: count,
+      deliveryFee: fee
     };
   }, [cart, profile]);
   
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, setProfileForCart, cartItemCount, subtotal, loyaltyDiscountValue, total, getPriceForQuantity }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, setProfileForCart, cartItemCount, subtotal, loyaltyDiscountValue, total, deliveryFee, getPriceForQuantity }}>
       {children}
     </CartContext.Provider>
   );

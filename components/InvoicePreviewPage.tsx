@@ -36,7 +36,7 @@ const fetchMockOrder = async (orderId: number): Promise<Order | null> => {
             { id: 2, order_id: orderId, product_id: 2, quantity: 5, unit_price: 22000, products: { name: 'Ibuprofen (Case)', dosage: 'Case of 48' } },
         ] as (OrderItem & { products: Pick<Product, 'name' | 'dosage'>})[],
         payments: [
-            { payment_method: 'online', payment_status: 'awaiting_confirmation' }
+            { payment_method: 'bank_transfer', payment_status: 'awaiting_confirmation' }
         ] as any, // Mock payment details
         invoices: [ { id: 1, invoice_number: `INV-20240726-${orderId}` } ] as any
     };
@@ -59,8 +59,12 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchMockOrder(orderId);
-                if (!data) throw new Error("Order not found.");
+                // Now fetching from the central localStorage store for consistency
+                const allOrdersRaw = localStorage.getItem('kingzy_all_orders');
+                const allOrders: Order[] = allOrdersRaw ? JSON.parse(allOrdersRaw) : [];
+                const data = allOrders.find(o => o.id === orderId) || null;
+                
+                if (!data) throw new Error("Order not found in the system.");
                 setOrder(data);
             } catch (err: any) {
                 setError(err.message);
@@ -75,7 +79,6 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
         if (!order?.invoices?.[0]) return;
         setDownloading(true);
         try {
-            // FIX: The getDocument function expects only 2 arguments, but 3 were provided. The third argument (filename) has been removed.
             const result = await getDocument('invoice', order.invoices[0].id);
             if (result.downloadUrl) {
                 const link = document.createElement('a');
@@ -95,17 +98,7 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
     };
     
     const handleProceed = () => {
-        const paymentMethod = order?.payments?.[0]?.payment_method;
-        const paymentStatus = order?.payments?.[0]?.payment_status;
-
-        // The mock order created in CartPage has 'online' as method and 'awaiting_confirmation' as status for Bank Transfer
-        if (paymentMethod === 'online' && paymentStatus === 'awaiting_confirmation') {
-            onNavigate({ name: 'paymentInstructions', orderId });
-        } else {
-            // For a real online payment, you'd redirect to the payment gateway here.
-            // For now, we go to the success page which has simulation buttons.
-            onNavigate({ name: 'orderSuccess', orderId });
-        }
+        onNavigate({ name: 'paymentInstructions', orderId });
     };
 
 
@@ -133,7 +126,7 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
                         </div>
                         <div className="text-right">
                             <h2 className="text-3xl font-bold uppercase text-gray-600">Invoice</h2>
-                            <p className="text-sm text-gray-500">#{order.invoices?.[0]?.invoice_number}</p>
+                            <p className="text-sm text-gray-500">#{order.id}</p>
                             <p className="text-sm text-gray-500">Date: {new Date(order.created_at).toLocaleDateString()}</p>
                         </div>
                     </div>

@@ -32,7 +32,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, profile, onProductSe
   const getDisplayPrice = () => {
     if (isWholesale && product.prices.wholesale_tiers && product.prices.wholesale_tiers.length > 0) {
       const lowestPrice = product.prices.wholesale_tiers.reduce((min, tier) => tier.price < min ? tier.price : min, product.prices.wholesale_tiers[0].price);
-      return { price: lowestPrice.toLocaleString(), prefix: "From ₦" };
+      return { price: lowestPrice.toLocaleString(), prefix: "₦" };
     }
     const retailPrice = product.prices?.retail ?? 0;
     return { price: retailPrice.toLocaleString(), prefix: "₦" };

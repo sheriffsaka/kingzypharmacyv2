@@ -12,7 +12,12 @@ export const productsData: Omit<Product, 'categories'>[] = [
         stock_quantity: 1250,
         image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819816/pr9_ouhvx0.png', 
         min_order_quantity: 10, 
-        wholesale_display_unit: 'Box of 20'
+        wholesale_display_unit: 'Box of 20',
+        technical_details: {
+            active_ingredients: 'Paracetamol (Acetaminophen) 500mg',
+            pharmacology: 'Acts centrally to relieve pain and reduce fever. It is a weak inhibitor of COX enzymes.',
+            storage_conditions: 'Store below 25°C in a dry place, away from direct sunlight.'
+        }
     },
     {
         id: 2,
@@ -25,7 +30,12 @@ export const productsData: Omit<Product, 'categories'>[] = [
         stock_quantity: 840,
         image_url: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1768819813/pr6_quh0rd.png', 
         min_order_quantity: 5, 
-        wholesale_display_unit: 'Box of 16'
+        wholesale_display_unit: 'Box of 16',
+        technical_details: {
+            active_ingredients: 'Ibuprofen 200mg',
+            pharmacology: 'A nonsteroidal anti-inflammatory drug (NSAID) that works by inhibiting prostaglandin synthesis.',
+            storage_conditions: 'Store below 30°C. Keep out of reach of children.'
+        }
     },
     {
         id: 3,
