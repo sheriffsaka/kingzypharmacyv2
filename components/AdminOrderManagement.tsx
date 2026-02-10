@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Order, Profile, OrderStatus, PaymentStatus, Payment } from '../types';
+import { Order, Profile, OrderStatus, PaymentStatus, Payment, DeliveryAddress, CustomerDetails, PaymentMethod } from '../types';
 import { EyeIcon, XIcon, SearchIcon, ShoppingCartIcon, TrashIcon, ClipboardCheckIcon } from './Icons';
 import { mockOrders } from '../data/orders';
+import { productsData } from '../data/products';
 
 // --- MOCK DATA ---
 const mockLogisticsStaff: (Profile & { email: string })[] = [
@@ -9,6 +10,7 @@ const mockLogisticsStaff: (Profile & { email: string })[] = [
     { id: 'logistics-2-uuid', email: 'delivery.expert@example.com', role: 'logistics', approval_status: 'approved', created_at: new Date().toISOString(), loyalty_discount_percentage: 0 },
 ];
 // ----------------
+const initialNewOrderState = { email: '', fullName: '', phone: '', street: '', city: '', state: '' };
 
 interface AdminOrderManagementProps { profile: Profile; }
 
@@ -22,6 +24,7 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [popUrl, setPopUrl] = useState<string | null>(null);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const [newOrderForm, setNewOrderForm] = useState(initialNewOrderState);
     
     // Filters
     const [filters, setFilters] = useState({ search: '', startDate: '', endDate: '' });
@@ -147,6 +150,40 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         window.dispatchEvent(new Event('storage'));
         
         alert("Consignment dispatched to logistics hub. Order remains in pipeline view.");
+    };
+
+    const handleCreateOrder = (e: React.FormEvent) => {
+        e.preventDefault();
+        const mockOrderId = Date.now();
+        const mockProduct1 = productsData.find(p => p.id === 1)!;
+        const mockProduct2 = productsData.find(p => p.id === 2)!;
+        const total = mockProduct1.prices.retail + mockProduct2.prices.retail;
+
+        const newOrder: Order = {
+            id: mockOrderId,
+            user_id: `on-behalf-${Date.now()}`,
+            created_at: new Date().toISOString(),
+            status: 'ORDER_RECEIVED',
+            total_price: total,
+            discount_applied: 0,
+            placed_on_behalf_by: profile.email,
+            delivery_address: { fullName: newOrderForm.fullName, phone: newOrderForm.phone, street: newOrderForm.street, city: newOrderForm.city, state: newOrderForm.state, zip: '' },
+            customer_details: { email: newOrderForm.email, userId: `on-behalf-${Date.now()}` },
+            order_items: [
+                { id: Date.now() + 1, order_id: mockOrderId, product_id: mockProduct1.id, quantity: 1, unit_price: mockProduct1.prices.retail, products: { name: mockProduct1.name, dosage: mockProduct1.dosage, image_url: mockProduct1.image_url, stock_quantity: mockProduct1.stock_quantity } },
+                { id: Date.now() + 2, order_id: mockOrderId, product_id: mockProduct2.id, quantity: 1, unit_price: mockProduct2.prices.retail, products: { name: mockProduct2.name, dosage: mockProduct2.dosage, image_url: mockProduct2.image_url, stock_quantity: mockProduct2.stock_quantity } }
+            ] as any,
+            payments: [{ id: mockOrderId, order_id: mockOrderId, payment_method: 'bank_transfer' as PaymentMethod, payment_status: 'awaiting_confirmation' as PaymentStatus, amount: total, created_at: new Date().toISOString() }] as any,
+            order_status_history: [{ id: 1, status: 'ORDER_RECEIVED', updated_at: new Date().toISOString(), updated_by: profile.email || 'admin' }] as any
+        };
+
+        const currentOrders = JSON.parse(localStorage.getItem('kingzy_all_orders') || '[]');
+        localStorage.setItem('kingzy_all_orders', JSON.stringify([newOrder, ...currentOrders]));
+        window.dispatchEvent(new Event('storage'));
+        
+        alert(`Order #${mockOrderId} created on behalf of ${newOrderForm.email} and added to the pipeline.`);
+        setIsCreatingOrder(false);
+        setNewOrderForm(initialNewOrderState);
     };
     
      const toggleSelectAll = () => {
@@ -293,6 +330,38 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
                             <button onClick={() => setSelectedOrder(null)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Close</button>
                             {selectedOrder.payments?.[0]?.payment_status === 'awaiting_confirmation' && popUrl && (<button onClick={() => handleConfirmPayment(selectedOrder.id)} className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Confirm Payment</button>)}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CREATE ORDER MODAL */}
+            {isCreatingOrder && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-scaleIn">
+                        <form onSubmit={handleCreateOrder}>
+                            <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold text-brand-dark">Manual Order Intake Protocol</h3><button type="button" onClick={() => setIsCreatingOrder(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button></div>
+                            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+                                <p className="text-sm bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-200">This form is for creating an order on behalf of a customer. Product items will be pre-filled for this demo.</p>
+                                <fieldset className="space-y-3"><legend className="font-semibold mb-1">Customer Details</legend>
+                                    <input required value={newOrderForm.email} onChange={e => setNewOrderForm({...newOrderForm, email: e.target.value})} placeholder="Customer Email" className="w-full p-2 border rounded-md" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required value={newOrderForm.fullName} onChange={e => setNewOrderForm({...newOrderForm, fullName: e.target.value})} placeholder="Full Name" className="w-full p-2 border rounded-md" />
+                                        <input required value={newOrderForm.phone} onChange={e => setNewOrderForm({...newOrderForm, phone: e.target.value})} placeholder="Phone Number" className="w-full p-2 border rounded-md" />
+                                    </div>
+                                </fieldset>
+                                <fieldset className="space-y-3"><legend className="font-semibold mb-1">Delivery Address</legend>
+                                    <input required value={newOrderForm.street} onChange={e => setNewOrderForm({...newOrderForm, street: e.target.value})} placeholder="Street Address" className="w-full p-2 border rounded-md" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required value={newOrderForm.city} onChange={e => setNewOrderForm({...newOrderForm, city: e.target.value})} placeholder="City" className="w-full p-2 border rounded-md" />
+                                        <input required value={newOrderForm.state} onChange={e => setNewOrderForm({...newOrderForm, state: e.target.value})} placeholder="State" className="w-full p-2 border rounded-md" />
+                                    </div>
+                                </fieldset>
+                            </div>
+                            <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
+                                <button type="button" onClick={() => setIsCreatingOrder(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                                <button type="submit" className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Create Order</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

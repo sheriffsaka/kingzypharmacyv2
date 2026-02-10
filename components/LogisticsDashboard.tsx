@@ -100,13 +100,16 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
     };
     
     const updateOrderStatusInStorage = (orderId: number, newStatus: OrderStatus) => {
+        // PERMANENT FIX: Read the latest data from storage first to prevent race conditions.
         const currentOrdersRaw = localStorage.getItem('kingzy_all_orders');
         const currentOrders: Order[] = currentOrdersRaw ? JSON.parse(currentOrdersRaw) : [];
+        
         const updatedOrders = currentOrders.map(o => 
             o.id === orderId ? { ...o, status: newStatus } : o
         );
+        
         localStorage.setItem('kingzy_all_orders', JSON.stringify(updatedOrders));
-        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('storage')); // Notify all components of the update
     };
 
     const handleAccept = (orderId: number) => {
@@ -122,11 +125,17 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
         if (confirm("Protocol: Confirm rejection of this consignment assignment? Immediate Admin alert will be dispatched.")) {
             setUpdating(prev => ({...prev, [orderId]: true}));
             setTimeout(() => {
-                const orderToReject = allOrders.find(o => o.id === orderId);
+                // ROBUST FIX: Always read the freshest data from localStorage inside the handler to prevent stale state issues.
+                const currentOrdersRaw = localStorage.getItem('kingzy_all_orders');
+                const currentOrders: Order[] = currentOrdersRaw ? JSON.parse(currentOrdersRaw) : [];
+                const orderToReject = currentOrders.find(o => o.id === orderId);
+
                 if (orderToReject) {
                     syncToAdmin('REJECTED_DISPATCH', orderId, `URGENT: Logistics staff REJECTED assignment for Order #${orderId}!`, 'error', orderToReject);
                     updateOrderStatusInStorage(orderId, 'LOGISTICS_REJECTED');
                     alert("Record Sanitized: Assignment has been rejected and returned to the Admin queue for review.");
+                } else {
+                    alert("Error: Could not find the order to reject. It may have been updated by an administrator.");
                 }
                 setUpdating(prev => ({...prev, [orderId]: false}));
             }, 800);

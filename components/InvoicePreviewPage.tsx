@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Order, OrderItem, Product } from '../types';
-import { getDocument } from '../services/documentService';
+import { generatePdfFromElement } from '../services/pdfService';
 
 // --- MOCK DATA FOR PRESENTATION ---
 // This mock function simulates fetching a complete order object by its ID
@@ -76,20 +76,22 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
     }, [orderId]);
 
     const handleDownload = async () => {
-        if (!order?.invoices?.[0]) return;
+        if (!order?.invoices?.[0]) {
+            const mockInvoiceNumber = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${order?.id || '000'}`;
+            setDownloading(true);
+            try {
+                await generatePdfFromElement('invoice-content', `${mockInvoiceNumber}.pdf`);
+            } catch (err: any) {
+                alert(`Failed to download document: ${err.message}`);
+            } finally {
+                setDownloading(false);
+            }
+            return;
+        };
         setDownloading(true);
         try {
-            const result = await getDocument('invoice', order.invoices[0].id);
-            if (result.downloadUrl) {
-                const link = document.createElement('a');
-                link.href = result.downloadUrl;
-                link.setAttribute('download', `${order.invoices[0].invoice_number}.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } else {
-                throw new Error(result.error || 'Unknown error occurred.');
-            }
+            const filename = `${order.invoices[0].invoice_number}.pdf`;
+            await generatePdfFromElement('invoice-content', filename);
         } catch (err: any) {
             alert(`Failed to download document: ${err.message}`);
         } finally {
@@ -107,12 +109,12 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
     if (!order) return <p className="text-center py-12">Could not load invoice details.</p>;
 
     const subtotal = order.order_items?.reduce((acc, item) => acc + item.unit_price * item.quantity, 0) ?? 0;
-    const deliveryFee = order.total_price - subtotal + order.discount_applied;
+    const deliveryFee = order.total_price - subtotal + (order.discount_applied || 0);
 
     return (
         <div className="bg-gray-100 py-12">
             <div className="container mx-auto px-4">
-                <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                <div id="invoice-content" className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
                     {/* Header */}
                     <div className="flex justify-between items-start border-b pb-6 mb-6">
                         <div>
@@ -120,7 +122,7 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
                                 <img src="https://res.cloudinary.com/dzbibbld6/image/upload/v1768670962/kingzylogo_rflzr9.png" alt="Kingzy Logo" className="h-16 mr-3"/>
                                 <div>
                                     <h1 className="text-2xl font-bold text-brand-dark">Kingzy Pharmaceuticals Ltd.</h1>
-                                    <p className="text-sm text-gray-500">123 Health Way, Ikeja, Lagos</p>
+                                    <p className="text-sm text-gray-500">Kingzy Foundation Complex, Rumudara, Port Harcourt</p>
                                 </div>
                             </div>
                         </div>
@@ -169,21 +171,21 @@ const InvoicePreviewPage: React.FC<InvoicePreviewPageProps> = ({ orderId, onNavi
                     <div className="flex justify-end mb-8">
                         <div className="w-full max-w-xs space-y-2">
                             <div className="flex justify-between"><span className="text-gray-600">Subtotal:</span><span>₦{subtotal.toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span className="text-gray-600">Discount:</span><span className="text-green-600">-₦{order.discount_applied.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-600">Discount:</span><span className="text-green-600">-₦{(order.discount_applied || 0).toLocaleString()}</span></div>
                             <div className="flex justify-between"><span className="text-gray-600">Delivery Fee:</span><span>₦{deliveryFee.toLocaleString()}</span></div>
                             <div className="flex justify-between font-bold text-xl border-t pt-2 mt-2"><span className="text-brand-dark">Grand Total:</span><span className="text-brand-dark">₦{order.total_price.toLocaleString()}</span></div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Actions */}
-                    <div className="border-t pt-6 flex flex-col sm:flex-row justify-end gap-4">
-                        <button onClick={handleDownload} disabled={downloading} className="bg-gray-200 text-brand-dark font-bold py-3 px-6 rounded-md hover:bg-gray-300 transition-colors disabled:bg-gray-400">
-                            {downloading ? 'Generating...' : 'Download Invoice'}
-                        </button>
-                        <button onClick={handleProceed} className="bg-brand-primary text-white font-bold py-3 px-6 rounded-md hover:bg-brand-secondary transition-colors">
-                            Confirm & Proceed to Payment
-                        </button>
-                    </div>
+                {/* Actions (outside of the printable area) */}
+                <div className="max-w-4xl mx-auto mt-6 flex flex-col sm:flex-row justify-end gap-4">
+                    <button onClick={handleDownload} disabled={downloading} className="bg-gray-200 text-brand-dark font-bold py-3 px-6 rounded-md hover:bg-gray-300 transition-colors disabled:bg-gray-400">
+                        {downloading ? 'Generating...' : 'Download Invoice'}
+                    </button>
+                    <button onClick={handleProceed} className="bg-brand-primary text-white font-bold py-3 px-6 rounded-md hover:bg-brand-secondary transition-colors">
+                        Confirm & Proceed to Payment
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase/client';
 import { Order, OrderStatus } from '../types';
 import { getDocument } from '../services/documentService';
 import OrderTrackingTimeline from './OrderTrackingTimeline';
+import { mockOrders } from '../data/orders';
 
 interface OrderHistoryPageProps {
   session: Session | null;
@@ -18,27 +17,26 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
     const [downloading, setDownloading] = useState<{ [key: string]: boolean }>({});
     const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
-    const fetchOrders = useCallback(async () => {
-        if (!session?.user) return;
+    const fetchOrders = useCallback(() => {
         setLoading(true);
         setError(null);
-        try {
-            const { data, error: fetchError } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items ( *, products ( name, dosage, image_url ) ),
-                    payments ( *, receipts ( id, receipt_number ) ),
-                    invoices ( id, invoice_number ),
-                    order_status_history ( * )
-                `)
-                .eq('user_id', session.user.id)
-                .order('created_at', { ascending: false });
+        
+        if (!session?.user) {
+            setOrders([]);
+            setLoading(false);
+            return;
+        }
 
-            if (fetchError) throw fetchError;
-            setOrders(data as Order[]);
+        try {
+            const storedOrdersRaw = localStorage.getItem('kingzy_all_orders');
+            const allOrders: Order[] = storedOrdersRaw ? JSON.parse(storedOrdersRaw) : mockOrders;
+            const userOrders = allOrders
+                .filter(o => o.user_id === session.user.id)
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            
+            setOrders(userOrders);
         } catch (err: any) {
-            setError(`Failed to fetch orders: ${err.message}`);
+            setError(`Failed to load orders from local storage: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -46,6 +44,11 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
 
     useEffect(() => {
         fetchOrders();
+        // Listen for storage events to automatically refresh the order list
+        window.addEventListener('storage', fetchOrders);
+        return () => {
+            window.removeEventListener('storage', fetchOrders);
+        };
     }, [fetchOrders]);
     
     const handleToggleTrack = (orderId: number) => {
@@ -92,7 +95,18 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
 
     if (loading) return <p className="text-center py-12">Loading your order history...</p>;
     if (error) return <p className="text-center py-12 text-red-500">{error}</p>;
-    if (!session) return <p className="text-center py-12">Please log in to view your orders.</p>;
+    
+    if (!session) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h1 className="text-3xl font-bold text-brand-dark mb-6">My Orders</h1>
+                <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200 max-w-2xl mx-auto">
+                    <p className="text-yellow-800 font-semibold">Please log in to view your order history.</p>
+                    <p className="text-sm text-yellow-700 mt-2">Guest checkouts do not have a persistent order history page. Please refer to your confirmation email for order details.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -105,7 +119,6 @@ const OrderHistoryPage: React.FC<OrderHistoryPageProps> = ({ session, onProductS
                 <div className="space-y-6">
                     {orders.map(order => {
                         const invoice = order.invoices?.[0];
-                        // Fixed: Removed comparison to 'pay_on_delivery' as it is no longer a valid PaymentStatus
                         const payment = order.payments?.find(p => p.payment_status === 'paid');
                         const receipt = payment?.receipts?.[0];
                         
