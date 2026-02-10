@@ -96,7 +96,6 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
         const newEvent = { id: Date.now(), type, orderId, message, severity, timestamp: Date.now(), order: orderPayload };
         localStorage.setItem('order_events_sync', JSON.stringify([...events, newEvent]));
         localStorage.setItem('admin_notification', JSON.stringify(newEvent));
-        // No need to dispatch 'storage' event here; localStorage.setItem does that automatically across tabs.
     };
     
     const handleAccept = (orderId: number) => {
@@ -113,13 +112,13 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
     };
 
     const handleReject = (orderId: number) => {
-        if (confirm("Protocol: Confirm rejection of this consignment assignment? The order will be removed from your queue and an immediate alert dispatched to the Admin.")) {
+        if (confirm("Protocol: Confirm rejection of this consignment assignment? The order will be moved to your rejected list and an immediate alert dispatched to the Admin.")) {
             setUpdating(prev => ({...prev, [orderId]: true}));
             setAllOrders(currentOrders => {
                 const orderToReject = currentOrders.find(o => o.id === orderId);
                 if (!orderToReject) {
                     alert("Error: Could not find the order to reject. It may have been updated by an administrator.");
-                    return currentOrders; // Return original state if order not found
+                    return currentOrders;
                 }
 
                 const updatedOrders = currentOrders.map(o => 
@@ -129,7 +128,6 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
                 localStorage.setItem('kingzy_all_orders', JSON.stringify(updatedOrders));
                 syncToAdmin('REJECTED_DISPATCH', orderId, `URGENT: Logistics staff REJECTED assignment for Order #${orderId}!`, 'error', orderToReject);
                 
-                alert("Record Sanitized: Assignment has been rejected and returned to the Admin queue for review.");
                 return updatedOrders;
             });
             setUpdating(prev => ({...prev, [orderId]: false}));
@@ -152,14 +150,12 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
     const myId = profile.id;
     const myAssignments = allOrders.filter(o => {
         const latestAssignment = o.logistics_assignments?.[o.logistics_assignments.length - 1];
-        // An order is considered an active assignment if it's assigned to the current user
-        // AND its status requires action from them. Rejected or Delivered orders are removed from this view.
-        return latestAssignment?.profiles.id === myId && 
-               ['ASSIGNED_TO_LOGISTICS', 'DISPATCHED', 'IN_TRANSIT'].includes(o.status);
+        return latestAssignment?.profiles.id === myId;
     });
 
     const newAssignments = myAssignments.filter(o => o.status === 'ASSIGNED_TO_LOGISTICS');
     const activeDeliveries = myAssignments.filter(o => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
+    const rejectedAssignments = myAssignments.filter(o => o.status === 'LOGISTICS_REJECTED');
 
     return (
         <div className="space-y-8 animate-fadeIn">
@@ -208,6 +204,19 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
                                     </tr>
                                 ))}
                             </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+             <div className="bg-white p-6 rounded-lg border shadow-md">
+                <h2 className="text-xl font-semibold text-brand-dark mb-4">Rejected Assignments</h2>
+                {rejectedAssignments.length === 0 ? (
+                    <p className="text-gray-400 text-center py-16">No rejected assignments.</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="text-xs font-semibold uppercase text-gray-500 border-b"><tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Note</th></tr></thead>
+                            <tbody className="divide-y">{rejectedAssignments.map(order => (<tr key={order.id} className="bg-red-50/50"><td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td><td className="px-4 py-4"><span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-red-100 text-red-700">REJECTED</span></td><td className="px-4 py-4 text-sm text-gray-500 italic">Returned to admin for re-assignment.</td></tr>))}</tbody>
                         </table>
                     </div>
                 )}
