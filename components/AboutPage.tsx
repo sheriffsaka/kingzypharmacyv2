@@ -1,42 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HeroSection from './HeroSection';
 import Persona from './Persona';
 import WhyChooseUs from './WhyChooseUs';
 import { View } from '../types';
 
+const defaultContent = {
+  mission: "Providing accessible and reliable health solutions using smart technology in a placid environment and in collaboration with our purpose-driven staff.",
+  vision: "To be a distinguished leader in premium health solutions around the globe, recognized for our commitment to authenticity and innovation.",
+  teamMembers: [
+    { name: 'Dr. Kingsley Emeka (CEO)', title: 'Founder & Chief Pharmacist', bio: 'With over 20 years of experience in the pharmaceutical industry, Dr. Okoro founded Kingzy Pharma to make healthcare accessible to all Nigerians.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769975052/kngzyceo_jc7dpl.jpg' },
+    { name: 'Tunde Adebayo', title: 'Head of Operations', bio: 'Tunde is a logistics expert who ensures that your orders are processed efficiently and delivered on time, every time.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541476/guy1_w46lys.jpg' },
+    { name: 'Chiamaka Nwosu', title: 'Lead Technologist', bio: 'Chiamaka leads the tech team, building the innovative platform that powers Kingzy Pharma with a focus on user experience.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541475/lady2_qfoh5b.jpg' }
+  ],
+  coreValues: [
+    { title: 'Integrity', description: 'We maintain the highest ethical standards in all our pharmaceutical dealings.' },
+    { title: 'Quality', description: 'We source only authentic medications from certified manufacturers.' },
+    { title: 'Efficiency', description: 'Using technology to streamline healthcare delivery across the nation.' },
+    { title: 'Safety', description: 'Your health is our priority; we never compromise on drug safety protocols.' }
+  ]
+};
+
+
 interface AboutPageProps {
   onNavigate: (view: View) => void;
 }
 
-const teamMembers = [
-  {
-    name: 'Dr. Kingsley Emeka (CEO)',
-    title: 'Founder & Chief Pharmacist',
-    bio: 'With over 20 years of experience in the pharmaceutical industry, Dr. Okoro founded Kingzy Pharma to make healthcare accessible to all Nigerians.',
-    imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769975052/kngzyceo_jc7dpl.jpg',
-  },
-  {
-    name: 'Tunde Adebayo',
-    title: 'Head of Operations',
-    bio: 'Tunde is a logistics expert who ensures that your orders are processed efficiently and delivered on time, every time.',
-    imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541476/guy1_w46lys.jpg',
-  },
-  {
-    name: 'Chiamaka Nwosu',
-    title: 'Lead Technologist',
-    bio: 'Chiamaka leads the tech team, building the innovative platform that powers Kingzy Pharma with a focus on user experience.',
-    imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541475/lady2_qfoh5b.jpg',
-  }
-];
-
-const coreValues = [
-  { title: 'Integrity', description: 'We maintain the highest ethical standards in all our pharmaceutical dealings.' },
-  { title: 'Quality', description: 'We source only authentic medications from certified manufacturers.' },
-  { title: 'Efficiency', description: 'Using technology to streamline healthcare delivery across the nation.' },
-  { title: 'Safety', description: 'Your health is our priority; we never compromise on drug safety protocols.' }
-];
-
 const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
+  const [content, setContent] = useState(defaultContent);
+
+  useEffect(() => {
+    const cmsDataRaw = localStorage.getItem('kingzy_cms_content');
+    if (cmsDataRaw) {
+      const cmsData = JSON.parse(cmsDataRaw);
+      if (cmsData.aboutPage) {
+        setContent(cmsData.aboutPage);
+      }
+    }
+  }, []);
+
   return (
     <div className="bg-white">
       <HeroSection 
@@ -65,7 +66,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
                     OUR VISION
                   </h3>
                   <p className="text-gray-600 text-lg leading-relaxed">
-                    To be a distinguished leader in premium health solutions around the globe, recognized for our commitment to authenticity and innovation.
+                    {content.vision}
                   </p>
                 </div>
                 <div>
@@ -74,7 +75,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
                     OUR MISSION
                   </h3>
                   <p className="text-gray-600 text-lg leading-relaxed">
-                    Providing accessible and reliable health solutions using smart technology in a placid environment and in collaboration with our purpose-driven staff.
+                    {content.mission}
                   </p>
                 </div>
               </div>
@@ -87,7 +88,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center text-brand-dark mb-16">Our Core Values</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {coreValues.map((value, idx) => (
+            {content.coreValues.map((value, idx) => (
               <div key={idx} className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:border-brand-secondary transition-all group">
                 <h4 className="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-primary">{value.title}</h4>
                 <p className="text-gray-500 text-sm leading-relaxed">{value.description}</p>
@@ -106,7 +107,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
             <p className="text-gray-500 italic">The dedicated team behind Kingzy Pharmaceuticals working round the clock to ensure your health is protected.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {teamMembers.map((member, idx) => (
+            {content.teamMembers.map((member, idx) => (
               <Persona key={idx} {...member} />
             ))}
           </div>

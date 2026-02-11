@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Profile, UserRole } from '../types';
 import { UserCircleIcon, EyeIcon, SearchIcon, ClipboardCheckIcon, ShoppingCartIcon, XIcon, TrashIcon } from './Icons';
 import AdminOrderManagement from './AdminOrderManagement';
+import CmsManagement from './CmsManagement';
 
 interface AdminActivity {
     id: number;
@@ -22,8 +23,10 @@ const mockActivities: AdminActivity[] = [
     { id: 3, adminEmail: 'support@kingzy.com', action: 'Placed Order on Behalf', target: 'john.buyer@test.com', timestamp: '2024-07-28 11:15' },
 ];
 
+type SuperAdminTab = 'admins' | 'orders' | 'activity' | 'global_settings' | 'cms';
+
 const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) => {
-    const [activeTab, setActiveTab] = useState<'admins' | 'orders' | 'activity' | 'global_settings'>('admins');
+    const [activeTab, setActiveTab] = useState<SuperAdminTab>('admins');
     const [searchQuery, setSearchQuery] = useState('');
     const [admins, setAdmins] = useState<(Profile & {email: string})[]>(initialAdmins);
     
@@ -34,25 +37,30 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
 
     // Global System Configuration (Persistent via LocalStorage)
     const [activeSettingsView, setActiveSettingsView] = useState<'main' | 'operations' | 'analytics' | 'banking'>('main');
+    
     const [systemConfig, setSystemConfig] = useState(() => {
-        const saved = localStorage.getItem('kingzy_system_config');
-        return saved ? JSON.parse(saved) : {
-            deliveryConfig: {
-                flatRate: 500,
-                freeDeliveryThreshold: 50000
-            },
-            bankDetails: {
-                accountName: 'Kingzy Pharmaceuticals Ltd.',
-                accountNumber: '0123456789',
-                bankName: 'Zenith Bank Plc'
-            },
+        const defaultConfig = {
+            deliveryConfig: { flatRate: 500, freeDeliveryThreshold: 50000 },
+            bankDetails: { accountName: 'Kingzy Pharmaceuticals Ltd.', accountNumber: '0123456789', bankName: 'Zenith Bank Plc' },
             fuelAllowance: 45000,
             minWholesaleOrder: 50000,
             taxPercentage: 7.5,
             retailDiscount: 2.5,
             wholesaleDiscount: 10.0,
-            platinumDiscount: 15.0
+            platinumDiscount: 15.0,
         };
+        const saved = localStorage.getItem('kingzy_system_config');
+        if (saved) {
+            const savedConfig = JSON.parse(saved);
+            // Deep merge to ensure new properties are added if they don't exist in localStorage
+            return {
+                ...defaultConfig,
+                ...savedConfig,
+                deliveryConfig: { ...defaultConfig.deliveryConfig, ...(savedConfig.deliveryConfig || {}) },
+                bankDetails: { ...defaultConfig.bankDetails, ...(savedConfig.bankDetails || {}) },
+            };
+        }
+        return defaultConfig;
     });
 
     const filteredAdmins = useMemo(() => {
@@ -105,55 +113,26 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
         setIsModalOpen(false);
     };
     
-    const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-        const [section, key] = name.split('.');
+        const keys = name.split('.');
         const val = type === 'number' ? Number(value) : value;
 
-        if (section && key) {
-            setSystemConfig((prev: any) => ({
-                ...prev,
-                [section]: {
-                    ...prev[section],
-                    [key]: val
-                }
-            }));
-        } else {
-             setSystemConfig((prev: any) => ({
-                ...prev,
-                [name]: val
-            }));
-        }
+        setSystemConfig((prev: any) => {
+            const newState = JSON.parse(JSON.stringify(prev)); // Deep copy to avoid mutation
+            let current = newState;
+            for (let i = 0; i < keys.length - 1; i++) {
+                current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = val;
+            return newState;
+        });
     };
 
-
-    return (
-        <div className="container mx-auto px-4 py-8 pb-24">
-            <div className="mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-brand-dark tracking-tighter uppercase">Super Admin Hub</h1>
-                    <p className="text-gray-500 font-medium italic tracking-wide">Infrastructure Governance & Global Parameters</p>
-                </div>
-                <div className="bg-brand-dark text-white p-5 rounded-2xl flex items-center gap-4 border-r-4 border-brand-secondary shadow-lg">
-                    <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center border border-white/20">
-                        <UserCircleIcon className="w-8 h-8 text-brand-secondary"/>
-                    </div>
-                    <div>
-                        <p className="text-[9px] uppercase font-black text-brand-secondary tracking-widest leading-none mb-1">Authority Level: ROOT</p>
-                        <p className="font-semibold text-base">{profile?.email || 'admin@kingzy.com'}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex gap-2 border-b-2 border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
-                <button onClick={() => setActiveTab('admins')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'admins' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Admin Management</button>
-                <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'orders' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Orders</button>
-                <button onClick={() => setActiveTab('activity')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'activity' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Audit Ledger</button>
-                <button onClick={() => setActiveTab('global_settings')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'global_settings' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Global Settings</button>
-            </div>
-
-            {activeTab === 'admins' && (
-                <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
+    const renderContent = () => {
+        switch(activeTab) {
+            case 'admins': return (
+                 <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                         <h2 className="text-xl font-bold text-brand-dark">Administrator Access Control</h2>
                         <div className="flex gap-4 w-full md:w-auto">
@@ -169,15 +148,14 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
                         <td className="p-4 text-right space-x-4"><button onClick={() => handleOpenEditModal(admin)} className="font-bold text-brand-primary hover:underline">Edit</button><button onClick={() => handleDeleteAdmin(admin.id)} className="font-bold text-red-500 hover:underline">Revoke</button></td>
                     </tr>))}</tbody></table></div>
                 </div>
-            )}
-             {activeTab === 'orders' && profile && <AdminOrderManagement profile={profile} />}
-
-            {activeTab === 'activity' && (
+            );
+            case 'orders': return profile ? <AdminOrderManagement profile={profile} /> : null;
+            case 'activity': return (
                 <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn"><h2 className="text-xl font-bold text-brand-dark mb-6">Administrator Audit Ledger</h2><div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 tracking-wider"><tr><th className="p-4">Timestamp</th><th className="p-4">Admin</th><th className="p-4">Action</th><th className="p-4">Target/Details</th></tr></thead><tbody className="divide-y divide-gray-100">{mockActivities.map(act => (<tr key={act.id} className="hover:bg-gray-50 text-sm"><td className="p-4 text-gray-500">{act.timestamp}</td><td className="p-4 font-semibold text-gray-800">{act.adminEmail}</td><td className="p-4">{act.action}</td><td className="p-4 text-gray-600 font-mono text-xs">{act.target}</td></tr>))}</tbody></table></div></div>
-            )}
-            
-            {activeTab === 'global_settings' && (
-                <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
+            );
+            case 'cms': return <CmsManagement setActiveTab={setActiveTab as any} />;
+            case 'global_settings': return (
+                 <div className="bg-white p-6 rounded-xl shadow-lg border animate-fadeIn">
                     <h2 className="text-xl font-bold text-brand-dark mb-6">Global System Parameters</h2>
                     
                     {activeSettingsView === 'main' ? (
@@ -201,7 +179,38 @@ const SuperAdminDashboard: React.FC<{profile: Profile | null}> = ({ profile }) =
                         </form>
                     )}
                 </div>
-            )}
+            )
+        }
+    }
+
+
+    return (
+        <div className="container mx-auto px-4 py-8 pb-24">
+            <div className="mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                <div>
+                    <h1 className="text-3xl font-black text-brand-dark tracking-tighter uppercase">Super Admin Hub</h1>
+                    <p className="text-gray-500 font-medium italic tracking-wide">Infrastructure Governance & Global Parameters</p>
+                </div>
+                <div className="bg-brand-dark text-white p-5 rounded-2xl flex items-center gap-4 border-r-4 border-brand-secondary shadow-lg">
+                    <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center border border-white/20">
+                        <UserCircleIcon className="w-8 h-8 text-brand-secondary"/>
+                    </div>
+                    <div>
+                        <p className="text-[9px] uppercase font-black text-brand-secondary tracking-widest leading-none mb-1">Authority Level: ROOT</p>
+                        <p className="font-semibold text-base">{profile?.email || 'admin@kingzy.com'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex gap-2 border-b-2 border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
+                <button onClick={() => setActiveTab('admins')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'admins' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Admin Management</button>
+                <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'orders' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Orders</button>
+                <button onClick={() => setActiveTab('cms')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'cms' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Content Management</button>
+                <button onClick={() => setActiveTab('activity')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'activity' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Audit Ledger</button>
+                <button onClick={() => setActiveTab('global_settings')} className={`whitespace-nowrap pb-3 px-4 font-bold text-sm uppercase tracking-wider transition-all ${activeTab === 'global_settings' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Global Settings</button>
+            </div>
+
+            {renderContent()}
 
              {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

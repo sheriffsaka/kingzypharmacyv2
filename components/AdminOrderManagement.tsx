@@ -9,6 +9,12 @@ const mockLogisticsStaff: (Profile & { email: string })[] = [
     { id: '00000000-0000-0000-0000-000000000002', email: 'logistics@kingzy.com', role: 'logistics', approval_status: 'approved', created_at: new Date().toISOString(), loyalty_discount_percentage: 0 },
     { id: 'logistics-2-uuid', email: 'delivery.expert@example.com', role: 'logistics', approval_status: 'approved', created_at: new Date().toISOString(), loyalty_discount_percentage: 0 },
 ];
+const mockCustomers = [
+  { fullName: 'Bolanle Adeoye', email: 'buyer@kingzy.com', phone: '08055551234', street: '45, Unity Road', city: 'Ikeja', state: 'Lagos' },
+  { fullName: 'Chidi Okonkwo (GoodHealth Pharmacy Ltd.)', email: 'wholesale@kingzy.com', phone: '08012345678', street: '123, Commerce Avenue', city: 'Victoria Island', state: 'Lagos' },
+  { fullName: 'Fatima Bello (QuickMeds Supplies)', email: 'pending.wholesale@kingzy.com', phone: '08098765432', street: '789 Business Rd', city: 'Abuja', state: 'FCT' },
+  { fullName: 'David Adekunle (New Health Pharmacy)', email: 'new.pharmacy@example.com', phone: '07011223344', street: '456 Wellness Ave', city: 'Port Harcourt', state: 'Rivers' }
+];
 // ----------------
 const initialNewOrderState = { email: '', fullName: '', phone: '', street: '', city: '', state: '' };
 
@@ -30,6 +36,9 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
     const [newOrderItems, setNewOrderItems] = useState<{ product: Product, quantity: number }[]>([]);
     const [productSearch, setProductSearch] = useState('');
     const [newOrderPaymentMethod, setNewOrderPaymentMethod] = useState<PaymentMethod>('bank_transfer');
+    const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+    const [showCustomerResults, setShowCustomerResults] = useState(false);
+
 
     // Admin POP Upload State
     const [isUploadingPop, setIsUploadingPop] = useState(false);
@@ -189,6 +198,15 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         
         alert("Consignment dispatched to logistics hub. Order remains in pipeline view.");
     };
+    
+    const closeAndResetCreateOrderModal = () => {
+        setIsCreatingOrder(false);
+        setNewOrderForm(initialNewOrderState);
+        setNewOrderItems([]);
+        setProductSearch('');
+        setCustomerSearchQuery('');
+        setNewOrderPaymentMethod('bank_transfer');
+    };
 
     const handleCreateOrder = (e: React.FormEvent) => {
         e.preventDefault();
@@ -223,11 +241,7 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         window.dispatchEvent(new Event('storage'));
         
         alert(`Order #${mockOrderId} created for ${newOrderForm.email} and added to the pipeline.`);
-        setIsCreatingOrder(false);
-        setNewOrderForm(initialNewOrderState);
-        setNewOrderItems([]);
-        setProductSearch('');
-        setNewOrderPaymentMethod('bank_transfer');
+        closeAndResetCreateOrderModal();
     };
     
      const toggleSelectAll = () => {
@@ -308,11 +322,33 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
         return productsData.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).slice(0, 5);
     }, [productSearch]);
     
-    const handleAddItem = (product: Product) => { setNewOrderItems(prev => { const existing = prev.find(item => item.product.id === product.id); if (existing) { return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item); } return [...prev, { product, quantity: 1 }]; }); };
+    const handleAddItem = (product: Product) => { setNewOrderItems(prev => { const existing = prev.find(item => item.product.id === product.id); if (existing) { return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item); } return [...prev, { product, quantity: 1 }]; }); setProductSearch(''); };
     const handleRemoveItem = (productId: number) => { setNewOrderItems(prev => prev.filter(item => item.product.id !== productId)); };
     const handleQuantityChange = (productId: number, quantity: number) => { if (quantity < 1) return handleRemoveItem(productId); setNewOrderItems(prev => prev.map(item => item.product.id === productId ? { ...item, quantity } : item)); };
     const newOrderTotal = useMemo(() => { return newOrderItems.reduce((acc, item) => acc + (item.product.prices.retail * item.quantity), 0); }, [newOrderItems]);
     const handleUploadPop = (orderId: number) => { if (!popFile) return; alert('Admin Action: Proof of payment uploaded. You may now confirm the payment.'); localStorage.setItem(`proof_for_${orderId}`, 'https://res.cloudinary.com/dzbibbld6/image/upload/v1770119864/sample-receipt_h4q0b3.jpg'); const url = localStorage.getItem(`proof_for_${orderId}`); setPopUrl(url); setIsUploadingPop(false); setPopFile(null); };
+    
+    // Customer Autocomplete Logic
+    const filteredCustomers = useMemo(() => {
+        if (!customerSearchQuery || mockCustomers.some(c => c.fullName === customerSearchQuery)) return [];
+        return mockCustomers.filter(c => c.fullName.toLowerCase().includes(customerSearchQuery.toLowerCase()));
+    }, [customerSearchQuery]);
+
+    const handleCustomerSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        setCustomerSearchQuery(value);
+        setNewOrderForm(prev => ({ ...prev, fullName: value }));
+        if (!showCustomerResults) setShowCustomerResults(true);
+    };
+
+    const handleSelectCustomer = (customer: typeof mockCustomers[0]) => {
+        setNewOrderForm({
+            fullName: customer.fullName, email: customer.email, phone: customer.phone,
+            street: customer.street, city: customer.city, state: customer.state,
+        });
+        setCustomerSearchQuery(customer.fullName);
+        setShowCustomerResults(false);
+    };
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -394,7 +430,36 @@ const AdminOrderManagement: React.FC<AdminOrderManagementProps> = ({ profile }) 
 
             {/* CREATE ORDER MODAL */}
             {isCreatingOrder && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl animate-scaleIn"><form onSubmit={handleCreateOrder}><div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold text-brand-dark">Manual Order Intake Protocol</h3><button type="button" onClick={() => setIsCreatingOrder(false)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button></div><div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-8"><div className="space-y-4"><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">1. Customer Details</legend><input required value={newOrderForm.email} onChange={e => setNewOrderForm({...newOrderForm, email: e.target.value})} placeholder="Customer Email" className="w-full p-2 border rounded-md" /><div className="grid grid-cols-2 gap-4"><input required value={newOrderForm.fullName} onChange={e => setNewOrderForm({...newOrderForm, fullName: e.target.value})} placeholder="Full Name" className="w-full p-2 border rounded-md" /><input required value={newOrderForm.phone} onChange={e => setNewOrderForm({...newOrderForm, phone: e.target.value})} placeholder="Phone Number" className="w-full p-2 border rounded-md" /></div></fieldset><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">2. Delivery Address</legend><input required value={newOrderForm.street} onChange={e => setNewOrderForm({...newOrderForm, street: e.target.value})} placeholder="Street Address" className="w-full p-2 border rounded-md" /><div className="grid grid-cols-2 gap-4"><input required value={newOrderForm.city} onChange={e => setNewOrderForm({...newOrderForm, city: e.target.value})} placeholder="City" className="w-full p-2 border rounded-md" /><input required value={newOrderForm.state} onChange={e => setNewOrderForm({...newOrderForm, state: e.target.value})} placeholder="State" className="w-full p-2 border rounded-md" /></div></fieldset><fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">4. Payment Method</legend><div className="flex gap-4"><label className="flex items-center gap-2"><input type="radio" name="payment" value="bank_transfer" checked={newOrderPaymentMethod === 'bank_transfer'} onChange={() => setNewOrderPaymentMethod('bank_transfer')} /> Bank Transfer</label><label className="flex items-center gap-2"><input type="radio" name="payment" value="online" checked={newOrderPaymentMethod === 'online'} onChange={() => setNewOrderPaymentMethod('online')} /> Online (Card)</label></div></fieldset></div><div className="space-y-4"><fieldset><legend className="font-semibold text-lg mb-2">3. Order Items</legend><div className="relative mb-2"><input type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Search for products to add..." className="w-full p-2 border rounded-md" />{searchedProducts.length > 0 && <div className="absolute w-full bg-white border rounded-md shadow-lg mt-1 z-10">{searchedProducts.map(p => (<button type="button" key={p.id} onClick={() => handleAddItem(p)} className="w-full text-left p-2 hover:bg-gray-100">{p.name}</button>))}</div>}</div><div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md bg-gray-50">{newOrderItems.length === 0 ? <p className="text-center text-gray-400 p-4">No items added.</p> : newOrderItems.map(item => ( <div key={item.product.id} className="flex items-center gap-2 bg-white p-1 rounded"><p className="flex-grow text-sm">{item.product.name}</p><input type="number" value={item.quantity} onChange={e => handleQuantityChange(item.product.id, parseInt(e.target.value))} className="w-16 p-1 border rounded" /><button type="button" onClick={() => handleRemoveItem(item.product.id)} className="text-red-500 p-1"><TrashIcon className="w-4 h-4" /></button></div> ))}</div><div className="text-right font-bold text-xl mt-4">Total: ₦{newOrderTotal.toLocaleString()}</div></fieldset></div></div><div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl"><button type="button" onClick={() => setIsCreatingOrder(false)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button><button type="submit" className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Create Order</button></div></form></div></div>
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl animate-scaleIn"><form onSubmit={handleCreateOrder}><div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold text-brand-dark">Manual Order Intake Protocol</h3><button type="button" onClick={closeAndResetCreateOrderModal}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button></div><div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">1. Customer Details</legend>
+                            <div className="relative">
+                                <input required value={newOrderForm.fullName} onChange={handleCustomerSearchChange} onFocus={() => setShowCustomerResults(true)} onBlur={() => setTimeout(() => setShowCustomerResults(false), 200)} placeholder="Full Name (type to search)" className="w-full p-2 border rounded-md" />
+                                {showCustomerResults && filteredCustomers.length > 0 && (<div className="absolute w-full bg-white border rounded-md shadow-lg mt-1 z-20 max-h-40 overflow-y-auto">{filteredCustomers.map(c => (<button type="button" key={c.email} onMouseDown={() => handleSelectCustomer(c)} className="w-full text-left p-2 hover:bg-gray-100">{c.fullName}</button>))}</div>)}
+                            </div>
+                            <input required value={newOrderForm.email} onChange={e => setNewOrderForm({...newOrderForm, email: e.target.value})} placeholder="Customer Email" className="w-full p-2 border rounded-md" />
+                            <input required value={newOrderForm.phone} onChange={e => setNewOrderForm({...newOrderForm, phone: e.target.value})} placeholder="Phone Number" className="w-full p-2 border rounded-md" />
+                        </fieldset>
+                        <fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">2. Delivery Address</legend><input required value={newOrderForm.street} onChange={e => setNewOrderForm({...newOrderForm, street: e.target.value})} placeholder="Street Address" className="w-full p-2 border rounded-md" /><div className="grid grid-cols-2 gap-4"><input required value={newOrderForm.city} onChange={e => setNewOrderForm({...newOrderForm, city: e.target.value})} placeholder="City" className="w-full p-2 border rounded-md" /><input required value={newOrderForm.state} onChange={e => setNewOrderForm({...newOrderForm, state: e.target.value})} placeholder="State" className="w-full p-2 border rounded-md" /></div></fieldset>
+                        <fieldset className="space-y-3"><legend className="font-semibold text-lg mb-2">4. Payment Method</legend><div className="flex gap-4"><label className="flex items-center gap-2"><input type="radio" name="payment" value="bank_transfer" checked={newOrderPaymentMethod === 'bank_transfer'} onChange={() => setNewOrderPaymentMethod('bank_transfer')} /> Bank Transfer</label><label className="flex items-center gap-2"><input type="radio" name="payment" value="online" checked={newOrderPaymentMethod === 'online'} onChange={() => setNewOrderPaymentMethod('online')} /> Online (Card)</label></div></fieldset>
+                    </div>
+                    <div className="space-y-4"><fieldset><legend className="font-semibold text-lg mb-2">3. Order Items</legend>
+                        <div className="relative mb-2">
+                            <input type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Search for products to add..." className="w-full p-2 border rounded-md" />
+                            {searchedProducts.length > 0 && (
+                                <div className="absolute w-full bg-white border rounded-md shadow-lg mt-1 z-10 max-h-60 overflow-y-auto">{searchedProducts.map(p => (
+                                    <button type="button" key={p.id} onClick={() => handleAddItem(p)} className="w-full text-left p-2 hover:bg-gray-100 flex items-center gap-3 border-b">
+                                        <img src={p.image_url} alt={p.name} className="w-12 h-12 object-contain rounded bg-white p-1 border"/>
+                                        <div className="flex-grow"><p className="font-semibold text-sm">{p.name}</p><p className="text-xs text-gray-500">{p.dosage}</p></div>
+                                        <p className="ml-auto font-bold text-sm text-brand-primary">₦{p.prices.retail.toLocaleString()}</p>
+                                    </button>
+                                ))}</div>
+                            )}
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md bg-gray-50">{newOrderItems.length === 0 ? <p className="text-center text-gray-400 p-4">No items added.</p> : newOrderItems.map(item => ( <div key={item.product.id} className="flex items-center gap-2 bg-white p-1 rounded"><p className="flex-grow text-sm font-semibold">{item.product.name}</p><input type="number" value={item.quantity} onChange={e => handleQuantityChange(item.product.id, parseInt(e.target.value))} className="w-16 p-1 border rounded" min="1" /><button type="button" onClick={() => handleRemoveItem(item.product.id)} className="text-red-500 p-1"><TrashIcon className="w-4 h-4" /></button></div> ))}</div>
+                        <div className="text-right font-bold text-xl mt-4">Total: ₦{newOrderTotal.toLocaleString()}</div>
+                    </fieldset></div>
+                </div><div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl"><button type="button" onClick={closeAndResetCreateOrderModal} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button><button type="submit" className="py-2 px-6 bg-accent-green text-white font-bold rounded-lg hover:bg-green-600 shadow-md">Create Order</button></div></form></div></div>
             )}
             
             {/* POP UPLOAD MODAL (ADMIN) */}

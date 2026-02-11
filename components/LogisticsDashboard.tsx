@@ -78,6 +78,7 @@ interface MyAssignmentsProps {
 const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [updating, setUpdating] = useState<Record<number, boolean>>({});
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     useEffect(() => {
         const loadAndSyncOrders = () => {
@@ -158,70 +159,119 @@ const MyAssignments: React.FC<MyAssignmentsProps> = ({ profile }) => {
     const rejectedAssignments = myAssignments.filter(o => o.status === 'LOGISTICS_REJECTED');
 
     return (
-        <div className="space-y-8 animate-fadeIn">
-            <div className="bg-white p-6 rounded-lg border shadow-md">
-                <h2 className="text-xl font-semibold text-brand-dark mb-4">Incoming Assignments</h2>
-                {newAssignments.length === 0 ? (
-                    <div className="py-16 text-center border-2 border-dashed rounded-lg border-gray-200">
-                        <p className="text-gray-400 font-semibold">No new jobs assigned.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {newAssignments.map(order => (
-                            <div key={order.id} className="p-6 border rounded-lg bg-gray-50">
-                                <div className="flex justify-between items-start mb-4"><h4 className="text-xl font-bold text-brand-dark">Order #{order.id}</h4><span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Pending</span></div>
-                                <div className="space-y-1 mb-6 text-sm"><p className="font-semibold text-gray-500">Destination</p><p className="text-gray-800 font-medium">{order.delivery_address.city}, {order.delivery_address.state}</p></div>
-                                <div className="flex gap-4">
-                                    <button onClick={() => handleReject(order.id)} disabled={updating[order.id]} className="flex-1 bg-red-100 text-red-700 py-3 rounded-lg font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all disabled:bg-gray-300">
-                                        {updating[order.id] ? 'Rejecting...' : 'Reject'}
-                                    </button>
-                                    <button onClick={() => handleAccept(order.id)} disabled={updating[order.id]} className="flex-2 bg-brand-primary text-white py-3 px-6 rounded-lg font-bold text-xs uppercase hover:bg-brand-secondary disabled:bg-gray-300 shadow-md">{updating[order.id] ? 'Syncing...' : 'Accept'}</button>
+        <>
+            <div className="space-y-8 animate-fadeIn">
+                <div className="bg-white p-6 rounded-lg border shadow-md">
+                    <h2 className="text-xl font-semibold text-brand-dark mb-4">Incoming Assignments</h2>
+                    {newAssignments.length === 0 ? (
+                        <div className="py-16 text-center border-2 border-dashed rounded-lg border-gray-200">
+                            <p className="text-gray-400 font-semibold">No new jobs assigned.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {newAssignments.map(order => (
+                                <div key={order.id} className="p-6 border rounded-lg bg-gray-50 flex flex-col">
+                                    <div className="flex justify-between items-start mb-4"><h4 className="text-xl font-bold text-brand-dark">Order #{order.id}</h4><span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Pending</span></div>
+                                    <div className="space-y-1 mb-6 text-sm flex-grow"><p className="font-semibold text-gray-500">Destination</p><p className="text-gray-800 font-medium">{order.delivery_address.city}, {order.delivery_address.state}</p></div>
+                                    <div className="flex gap-2 mt-auto">
+                                        <button onClick={() => setSelectedOrder(order)} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-bold text-xs uppercase hover:bg-gray-300 transition-all">
+                                            View Details
+                                        </button>
+                                        <button onClick={() => handleReject(order.id)} disabled={updating[order.id]} className="flex-1 bg-red-100 text-red-700 py-3 rounded-lg font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all disabled:bg-gray-300">
+                                            {updating[order.id] ? '...' : 'Reject'}
+                                        </button>
+                                        <button onClick={() => handleAccept(order.id)} disabled={updating[order.id]} className="flex-1 bg-brand-primary text-white py-3 px-4 rounded-lg font-bold text-xs uppercase hover:bg-brand-secondary disabled:bg-gray-300 shadow-md">{updating[order.id] ? '...' : 'Accept'}</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <div className="bg-white p-6 rounded-lg border shadow-md">
+                    <h2 className="text-xl font-semibold text-brand-dark mb-4">Active Deliveries</h2>
+                    {activeDeliveries.length === 0 ? (
+                        <p className="text-gray-400 text-center py-16">No active deliveries.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="text-xs font-semibold uppercase text-gray-500 border-b">
+                                    <tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Action</th></tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {activeDeliveries.map(order => (
+                                        <tr key={order.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td>
+                                            <td className="px-4 py-4"><span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${order.status === 'DISPATCHED' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>{order.status}</span></td>
+                                            <td className="px-4 py-4 text-right">
+                                                {order.status === 'DISPATCHED' && <button onClick={() => handleStatusUpdate(order.id, 'IN_TRANSIT')} disabled={updating[order.id]} className="bg-brand-secondary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-brand-primary shadow-md disabled:bg-gray-300">Start Transit</button>}
+                                                {order.status === 'IN_TRANSIT' && <button onClick={() => handleStatusUpdate(order.id, 'DELIVERED')} disabled={updating[order.id]} className="bg-accent-green text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-green-600 shadow-md disabled:bg-gray-300">Confirm Delivery</button>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+                 <div className="bg-white p-6 rounded-lg border shadow-md">
+                    <h2 className="text-xl font-semibold text-brand-dark mb-4">Rejected Assignments</h2>
+                    {rejectedAssignments.length === 0 ? (
+                        <p className="text-gray-400 text-center py-16">No rejected assignments.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="text-xs font-semibold uppercase text-gray-500 border-b"><tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Note</th></tr></thead>
+                                <tbody className="divide-y">{rejectedAssignments.map(order => (<tr key={order.id} className="bg-red-50/50"><td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td><td className="px-4 py-4"><span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-red-100 text-red-700">REJECTED</span></td><td className="px-4 py-4 text-sm text-gray-500 italic">Returned to admin for re-assignment.</td></tr>))}</tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {selectedOrder && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-scaleIn">
+                        <div className="p-6 border-b flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-brand-dark">Consignment Details: #{selectedOrder.id}</h3>
+                            <button onClick={() => setSelectedOrder(null)}><XIcon className="w-6 h-6 text-gray-400 hover:text-gray-700"/></button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Recipient</h4>
+                                    <p><strong>Name:</strong> {selectedOrder.delivery_address.fullName}</p>
+                                    <p><strong>Phone:</strong> {selectedOrder.delivery_address.phone}</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Delivery Location</h4>
+                                    <p>{selectedOrder.delivery_address.street}</p>
+                                    <p>{selectedOrder.delivery_address.city}, {selectedOrder.delivery_address.state}</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-            <div className="bg-white p-6 rounded-lg border shadow-md">
-                <h2 className="text-xl font-semibold text-brand-dark mb-4">Active Deliveries</h2>
-                {activeDeliveries.length === 0 ? (
-                    <p className="text-gray-400 text-center py-16">No active deliveries.</p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="text-xs font-semibold uppercase text-gray-500 border-b">
-                                <tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Action</th></tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {activeDeliveries.map(order => (
-                                    <tr key={order.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td>
-                                        <td className="px-4 py-4"><span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${order.status === 'DISPATCHED' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>{order.status}</span></td>
-                                        <td className="px-4 py-4 text-right">
-                                            {order.status === 'DISPATCHED' && <button onClick={() => handleStatusUpdate(order.id, 'IN_TRANSIT')} disabled={updating[order.id]} className="bg-brand-secondary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-brand-primary shadow-md disabled:bg-gray-300">Start Transit</button>}
-                                            {order.status === 'IN_TRANSIT' && <button onClick={() => handleStatusUpdate(order.id, 'DELIVERED')} disabled={updating[order.id]} className="bg-accent-green text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-green-600 shadow-md disabled:bg-gray-300">Confirm Delivery</button>}
-                                        </td>
-                                    </tr>
+                            <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Package Contents</h4>
+                            <div className="space-y-3 mb-6">
+                                {selectedOrder.order_items?.map(item => (
+                                    <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
+                                        <img src={item.products?.image_url} alt={item.products?.name} className="w-16 h-16 object-contain rounded bg-white p-1 border"/>
+                                        <div className="flex-grow">
+                                            <p className="font-semibold">{item.products?.name}</p>
+                                            <p className="text-sm text-gray-600">Dosage: {item.products?.dosage}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-lg">{item.quantity}</p>
+                                            <p className="text-xs text-gray-500">UNITS</p>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 flex justify-end gap-4 rounded-b-xl">
+                            <button onClick={() => setSelectedOrder(null)} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Close</button>
+                        </div>
                     </div>
-                )}
-            </div>
-             <div className="bg-white p-6 rounded-lg border shadow-md">
-                <h2 className="text-xl font-semibold text-brand-dark mb-4">Rejected Assignments</h2>
-                {rejectedAssignments.length === 0 ? (
-                    <p className="text-gray-400 text-center py-16">No rejected assignments.</p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="text-xs font-semibold uppercase text-gray-500 border-b"><tr><th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Note</th></tr></thead>
-                            <tbody className="divide-y">{rejectedAssignments.map(order => (<tr key={order.id} className="bg-red-50/50"><td className="px-4 py-4 font-bold text-brand-dark">#{order.id}</td><td className="px-4 py-4"><span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-red-100 text-red-700">REJECTED</span></td><td className="px-4 py-4 text-sm text-gray-500 italic">Returned to admin for re-assignment.</td></tr>))}</tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-        </div>
+                </div>
+            )}
+        </>
     );
 };
 

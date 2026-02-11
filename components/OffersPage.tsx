@@ -1,8 +1,37 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HeroSection from './HeroSection';
 
+const defaultPromos = {
+    labTest: {
+        value: '15%',
+        title: 'First Lab Test',
+        description: 'Apply code MIREVA15 at checkout for your first Mireva diagnostic booking.'
+    },
+    homeCollection: {
+        value: 'FREE',
+        title: 'Home Collection',
+        description: 'On all laboratory test orders above ₦50,000 within Lagos state.'
+    },
+    referral: {
+        value: '₦1k',
+        title: 'Referral Credit',
+        description: 'Get ₦1,000 credit for every successful referral to Kingzy Platinum Cluster.'
+    }
+};
+
 const OffersPage: React.FC = () => {
+    const [promos, setPromos] = useState(defaultPromos);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('kingzy_cms_content');
+        if (saved) {
+            const config = JSON.parse(saved);
+            if (config.offersPage) {
+                setPromos(config.offersPage);
+            }
+        }
+    }, []);
+
     return (
          <div className="bg-white">
             <HeroSection 
@@ -20,19 +49,19 @@ const OffersPage: React.FC = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="bg-brand-light p-8 rounded-3xl border-2 border-dashed border-brand-primary shadow-sm">
-                            <p className="text-brand-primary font-bold text-5xl mb-4">15%</p>
-                            <h3 className="text-xl font-bold mb-2">First Lab Test</h3>
-                            <p className="text-sm text-gray-500">Apply code MIREVA15 at checkout for your first Mireva diagnostic booking.</p>
+                            <p className="text-brand-primary font-bold text-5xl mb-4">{promos.labTest.value}</p>
+                            <h3 className="text-xl font-bold mb-2">{promos.labTest.title}</h3>
+                            <p className="text-sm text-gray-500">{promos.labTest.description}</p>
                         </div>
                         <div className="bg-brand-dark p-8 rounded-3xl text-white shadow-xl transform rotate-1">
-                            <p className="text-yellow-400 font-bold text-5xl mb-4">FREE</p>
-                            <h3 className="text-xl font-bold mb-2">Home Collection</h3>
-                            <p className="text-sm text-brand-light/70">On all laboratory test orders above ₦50,000 within Lagos state.</p>
+                            <p className="text-yellow-400 font-bold text-5xl mb-4">{promos.homeCollection.value}</p>
+                            <h3 className="text-xl font-bold mb-2">{promos.homeCollection.title}</h3>
+                            <p className="text-sm text-brand-light/70">{promos.homeCollection.description}</p>
                         </div>
                         <div className="bg-brand-light p-8 rounded-3xl border-2 border-dashed border-brand-secondary shadow-sm">
-                            <p className="text-brand-secondary font-bold text-5xl mb-4">₦1k</p>
-                            <h3 className="text-xl font-bold mb-2">Referral Credit</h3>
-                            <p className="text-sm text-gray-500">Get ₦1,000 credit for every successful referral to Kingzy Platinum Cluster.</p>
+                            <p className="text-brand-secondary font-bold text-5xl mb-4">{promos.referral.value}</p>
+                            <h3 className="text-xl font-bold mb-2">{promos.referral.title}</h3>
+                            <p className="text-sm text-gray-500">{promos.referral.description}</p>
                         </div>
                     </div>
                 </div>

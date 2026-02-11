@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HeroSection from './HeroSection';
 import HealthArticles from './HealthArticles';
 import { View } from '../types';
-import { articles } from '../data/articles';
+import { articles as defaultArticles, Article } from '../data/articles';
 
 interface HealthInsightsProps {
     onNavigate: (view: View) => void;
 }
 
 const HealthInsights: React.FC<HealthInsightsProps> = ({ onNavigate }) => {
+    const [articles, setArticles] = useState<Article[]>(defaultArticles);
+
+    useEffect(() => {
+        const cmsDataRaw = localStorage.getItem('kingzy_cms_content');
+        if (cmsDataRaw) {
+            const cmsData = JSON.parse(cmsDataRaw);
+            if (cmsData.articles) {
+                setArticles(cmsData.articles);
+            }
+        }
+    }, []);
+
     return (
         <div className="bg-white">
             <HeroSection 

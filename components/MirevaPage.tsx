@@ -1,54 +1,70 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HeroSection from './HeroSection';
 import { ClipboardCheckIcon, ShieldCheckIcon, UserCircleIcon, PhoneIcon } from './Icons';
 import { View } from '../types';
+
+const defaultContent = {
+    hero: {
+        title: "Mireva Diagnostic Excellence",
+        subtitle: "Advanced laboratory services powered by Kingzy Pharmaceuticals. Precision diagnostics for a healthier you.",
+        imageUrl: "https://res.cloudinary.com/dzbibbld6/image/upload/v1769976731/medical_lab_hephke.jpg"
+    },
+    intro: {
+        heading: "World-Class Diagnostic Solutions",
+        subheading: "At Mireva Diagnostics, we believe that accurate diagnosis is the cornerstone of effective healthcare. We utilize state-of-the-art automated systems to deliver fast, reliable, and precise results."
+    },
+    features: [
+        { title: "Automated Processing", description: "Minimizing human error through advanced robotic sample handling and analysis." },
+        { title: "Home Sample Collection", description: "Qualified phlebotomists can visit your home or office for painless sample extraction." },
+        { title: "Digital Results Hub", description: "Access your reports securely through our online portal or get them delivered via WhatsApp/Email." },
+    ],
+    testTypes: [
+        { title: "Comprehensive Wellness", tests: ["Full Blood Count (FBC)", "Lipid Profile", "Kidney Function Test", "Liver Function Test"], icon: "🔬", color: "bg-blue-50 text-blue-700" },
+        { title: "Specialized Screening", tests: ["HBA1C (Diabetes)", "Thyroid Profile (T3, T4, TSH)", "Tumor Markers", "Hormonal Assay"], icon: "🧪", color: "bg-purple-50 text-purple-700" },
+        { title: "Infection & Immunity", tests: ["Malaria Parasite", "Typhoid (Widal)", "COVID-19 PCR/Rapid", "Hepatitis Screening"], icon: "🛡️", color: "bg-green-50 text-green-700" },
+        { title: "Molecular & DNA", tests: ["Paternity Testing", "Genotype (Hemoglobin)", "Viral Load Testing", "Allergy Panels"], icon: "🧬", color: "bg-indigo-50 text-indigo-700" }
+    ],
+    cta: {
+        heading: "Book Your Test Today",
+        subheading: "Speak with our diagnostic coordinator to schedule your screening or request a home visit."
+    }
+};
+
+const featureIcons = [ClipboardCheckIcon, UserCircleIcon, ShieldCheckIcon];
+
 
 interface MirevaPageProps {
   onNavigate: (view: View) => void;
 }
 
-const testTypes = [
-    {
-        title: "Comprehensive Wellness",
-        tests: ["Full Blood Count (FBC)", "Lipid Profile", "Kidney Function Test", "Liver Function Test"],
-        icon: "🔬",
-        color: "bg-blue-50 text-blue-700"
-    },
-    {
-        title: "Specialized Screening",
-        tests: ["HBA1C (Diabetes)", "Thyroid Profile (T3, T4, TSH)", "Tumor Markers", "Hormonal Assay"],
-        icon: "🧪",
-        color: "bg-purple-50 text-purple-700"
-    },
-    {
-        title: "Infection & Immunity",
-        tests: ["Malaria Parasite", "Typhoid (Widal)", "COVID-19 PCR/Rapid", "Hepatitis Screening"],
-        icon: "🛡️",
-        color: "bg-green-50 text-green-700"
-    },
-    {
-        title: "Molecular & DNA",
-        tests: ["Paternity Testing", "Genotype (Hemoglobin)", "Viral Load Testing", "Allergy Panels"],
-        icon: "🧬",
-        color: "bg-indigo-50 text-indigo-700"
-    }
-];
 
 const MirevaPage: React.FC<MirevaPageProps> = ({ onNavigate }) => {
+    const [content, setContent] = useState(defaultContent);
+
+    useEffect(() => {
+        const cmsDataRaw = localStorage.getItem('kingzy_cms_content');
+        if (cmsDataRaw) {
+            const cmsData = JSON.parse(cmsDataRaw);
+            if (cmsData.mirevaPage) {
+                setContent(cmsData.mirevaPage);
+            }
+        }
+    }, []);
+
+
     return (
         <div className="bg-white">
             <HeroSection
-                title="Mireva Diagnostic Excellence"
-                subtitle="Advanced laboratory services powered by Kingzy Pharmaceuticals. Precision diagnostics for a healthier you."
-                imageUrl="https://res.cloudinary.com/dzbibbld6/image/upload/v1769976731/medical_lab_hephke.jpg"
+                title={content.hero.title}
+                subtitle={content.hero.subtitle}
+                imageUrl={content.hero.imageUrl}
             />
             
             <div className="container mx-auto px-4 py-20">
                 <div className="max-w-4xl mx-auto text-center mb-20">
-                    <h2 className="text-4xl font-extrabold text-brand-dark mb-6">World-Class Diagnostic Solutions</h2>
+                    <h2 className="text-4xl font-extrabold text-brand-dark mb-6">{content.intro.heading}</h2>
                     <p className="text-gray-600 text-xl leading-relaxed">
-                        At Mireva Diagnostics, we believe that accurate diagnosis is the cornerstone of effective healthcare. 
-                        We utilize state-of-the-art automated systems to deliver fast, reliable, and precise results.
+                        {content.intro.subheading}
                     </p>
                 </div>
 
@@ -65,34 +81,25 @@ const MirevaPage: React.FC<MirevaPageProps> = ({ onNavigate }) => {
                         </div>
                     </div>
                     <div className="flex flex-col justify-center space-y-8">
-                        <div className="flex items-start gap-4">
-                            <div className="bg-brand-light p-3 rounded-lg"><ClipboardCheckIcon className="w-8 h-8 text-brand-primary"/></div>
-                            <div>
-                                <h3 className="text-xl font-bold text-brand-dark mb-2">Automated Processing</h3>
-                                <p className="text-gray-600">Minimizing human error through advanced robotic sample handling and analysis.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-4">
-                            <div className="bg-brand-light p-3 rounded-lg"><UserCircleIcon className="w-8 h-8 text-brand-primary"/></div>
-                            <div>
-                                <h3 className="text-xl font-bold text-brand-dark mb-2">Home Sample Collection</h3>
-                                <p className="text-gray-600">Qualified phlebotomists can visit your home or office for painless sample extraction.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-4">
-                            <div className="bg-brand-light p-3 rounded-lg"><ShieldCheckIcon className="w-8 h-8 text-brand-primary"/></div>
-                            <div>
-                                <h3 className="text-xl font-bold text-brand-dark mb-2">Digital Results Hub</h3>
-                                <p className="text-gray-600">Access your reports securely through our online portal or get them delivered via WhatsApp/Email.</p>
-                            </div>
-                        </div>
+                        {content.features.map((feature, index) => {
+                            const Icon = featureIcons[index % featureIcons.length];
+                            return (
+                                <div key={index} className="flex items-start gap-4">
+                                    <div className="bg-brand-light p-3 rounded-lg"><Icon className="w-8 h-8 text-brand-primary"/></div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-brand-dark mb-2">{feature.title}</h3>
+                                        <p className="text-gray-600">{feature.description}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
                 <div className="mb-24">
                     <h2 className="text-3xl font-bold text-brand-dark text-center mb-12">Available Laboratory Tests</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {testTypes.map((type, idx) => (
+                        {content.testTypes.map((type, idx) => (
                             <div key={idx} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
                                 <div className="text-4xl mb-4">{type.icon}</div>
                                 <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full inline-block ${type.color}`}>
@@ -113,8 +120,8 @@ const MirevaPage: React.FC<MirevaPageProps> = ({ onNavigate }) => {
 
                 <div className="bg-brand-dark rounded-3xl p-10 md:p-16 text-white flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="max-w-xl text-center md:text-left">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Book Your Test Today</h2>
-                        <p className="text-brand-light/70 text-lg">Speak with our diagnostic coordinator to schedule your screening or request a home visit.</p>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4">{content.cta.heading}</h2>
+                        <p className="text-brand-light/70 text-lg">{content.cta.subheading}</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                         <button 

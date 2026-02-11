@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View } from '../types';
-import { articles, Article } from '../data/articles';
+import { articles as defaultArticles, Article } from '../data/articles';
 import { ArrowLeftIcon } from './Icons';
 
 interface BlogDetailPageProps {
@@ -12,8 +12,10 @@ const BlogDetailPage: React.FC<BlogDetailPageProps> = ({ articleId, onNavigate }
   const [article, setArticle] = useState<Article | null>(null);
 
   useEffect(() => {
-    // Simulate fetching data
-    const foundArticle = articles.find(a => a.id === articleId);
+    const cmsDataRaw = localStorage.getItem('kingzy_cms_content');
+    const articlesSource = cmsDataRaw ? JSON.parse(cmsDataRaw).articles : defaultArticles;
+    
+    const foundArticle = articlesSource.find((a: Article) => a.id === articleId);
     setArticle(foundArticle || null);
     window.scrollTo(0, 0);
   }, [articleId]);

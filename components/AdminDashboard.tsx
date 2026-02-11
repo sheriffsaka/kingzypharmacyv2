@@ -4,10 +4,11 @@ import AdminUserManagement from './AdminUserManagement';
 import AdminInventoryManagement from './AdminInventoryManagement';
 import AdminOrderManagement from './AdminOrderManagement';
 import AdminUserApproval from './AdminUserApproval';
+import CmsManagement from './CmsManagement'; // Import the new CMS component
 import { Profile } from '../types';
 import { XIcon, ChatBubbleIcon, ShieldCheckIcon } from './Icons';
 
-type AdminTab = 'overview' | 'orders' | 'inventory' | 'users' | 'approvals';
+type AdminTab = 'overview' | 'orders' | 'inventory' | 'users' | 'approvals' | 'cms';
 
 interface AdminDashboardProps {
     profile: Profile;
@@ -70,18 +71,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ profile }) => {
         setShowNotifications(false);
     }
 
-    const tabLabels: Record<AdminTab, string> = {
-        overview: 'Console',
-        orders: 'Order Console',
-        inventory: 'Stock Hub',
-        users: 'User Access',
-        approvals: 'KYC Checks',
-    };
-
     const TabButton = ({ tab, label }: { tab: AdminTab, label: string }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-bold transition-all text-sm rounded-t-lg border-b-2 ${
+            className={`whitespace-nowrap px-4 py-2 font-bold transition-all text-sm rounded-t-lg border-b-2 ${
                 activeTab === tab 
                 ? 'text-brand-primary border-brand-primary bg-brand-light/30' 
                 : 'text-gray-400 border-transparent hover:text-brand-dark hover:border-gray-200'
@@ -98,6 +91,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ profile }) => {
             case 'inventory': return <AdminInventoryManagement />;
             case 'users': return <AdminUserManagement />;
             case 'approvals': return <AdminUserApproval />;
+            case 'cms': return <CmsManagement setActiveTab={setActiveTab} />;
             default: return <AdminDashboardOverview />;
         }
     };
@@ -162,7 +156,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ profile }) => {
                 <nav className="-mb-[2px] flex space-x-6 min-w-max" aria-label="Tabs">
                     <TabButton tab="overview" label="Overview" />
                     <TabButton tab="orders" label="Order Pipeline" />
-                    <TabButton tab="inventory" label="Inventory" />
+                    <TabButton tab="cms" label="Content Management" />
+                    <TabButton tab="inventory" label="Products & Inventory" />
                     <TabButton tab="users" label="User Access" />
                     <TabButton tab="approvals" label="Partner KYC" />
                 </nav>
