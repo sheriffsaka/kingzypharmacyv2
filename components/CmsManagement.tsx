@@ -72,6 +72,16 @@ const seedData = {
 };
 
 
+// Helper to convert file to base64 for preview and storage
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+
+
 type CmsSection = 'dashboard' | 'articles' | 'aboutPage' | 'mirevaPage' | 'plusMembershipPage' | 'offersPage' | 'products';
 
 interface CmsManagementProps {
@@ -86,15 +96,29 @@ const CmsManagement: React.FC<CmsManagementProps> = ({ setActiveTab }) => {
     useEffect(() => {
         const rawData = localStorage.getItem(CMS_DATA_KEY);
         if (rawData) {
-            const parsed = JSON.parse(rawData);
-            const validatedData = { ...seedData, ...parsed }; // Merge to ensure all keys exist
-            setCmsData(validatedData);
+            try {
+                const parsed = JSON.parse(rawData);
+                // Deep merge with seedData to ensure new fields are not missing
+                const validatedData = {
+                    ...seedData,
+                    ...parsed,
+                    aboutPage: { ...seedData.aboutPage, ...(parsed.aboutPage || {}) },
+                    mirevaPage: { ...seedData.mirevaPage, ...(parsed.mirevaPage || {}) },
+                    plusMembershipPage: { ...seedData.plusMembershipPage, ...(parsed.plusMembershipPage || {}) },
+                    offersPage: { ...seedData.offersPage, ...(parsed.offersPage || {}) },
+                };
+                setCmsData(validatedData);
+            } catch(e) {
+                console.error("Failed to parse CMS data, resetting to default.", e);
+                setCmsData(seedData);
+            }
         } else {
             setCmsData(seedData);
             localStorage.setItem(CMS_DATA_KEY, JSON.stringify(seedData));
         }
         setIsLoading(false);
     }, []);
+
 
     const handleSave = () => {
         if (cmsData) {
@@ -206,11 +230,19 @@ const ArticlesEditor: React.FC<{ articles: Article[], onUpdate: (data: Article[]
         const isNew = article === 'new';
         const [formState, setFormState] = useState<Article>(isNew ? { id: `article-${Date.now()}`, title: '', summary: '', imageUrl: '', content: '', author: '', publishedDate: new Date().toISOString().split('T')[0] } : article);
         const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormState({...formState, [e.target.name]: e.target.value });
+        
+        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            if (e.target.files?.[0]) {
+                const base64 = await fileToBase64(e.target.files[0]);
+                setFormState({ ...formState, imageUrl: base64 });
+            }
+        };
+
         return (
              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-lg w-full max-w-2xl"><form onSubmit={(e) => { e.preventDefault(); onSave(formState); }}><div className="p-4 border-b"><h3 className="font-bold">{isNew ? 'New Article' : 'Edit Article'}</h3></div><div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
                 <input name="title" value={formState.title} onChange={handleChange} placeholder="Title" className="w-full p-2 border rounded" required/>
                 <input name="author" value={formState.author} onChange={handleChange} placeholder="Author" className="w-full p-2 border rounded" required/>
-                <input name="imageUrl" value={formState.imageUrl} onChange={handleChange} placeholder="Image URL" className="w-full p-2 border rounded" required/>
+                <div><label className="text-sm font-semibold">Article Image</label><input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-light file:text-brand-primary hover:file:bg-brand-primary/20"/><div className="mt-2">{formState.imageUrl && <img src={formState.imageUrl} alt="Preview" className="h-24 rounded-md object-cover"/>}</div></div>
                 <textarea name="summary" value={formState.summary} onChange={handleChange} placeholder="Summary" className="w-full p-2 border rounded" rows={3} required/>
                 <textarea name="content" value={formState.content} onChange={handleChange} placeholder="Full content..." className="w-full p-2 border rounded" rows={10} required/>
              </div><div className="p-3 bg-gray-50 flex justify-end gap-3"><button type="button" onClick={onCancel}>Cancel</button><button type="submit" className="bg-blue-500 text-white px-4 py-1 rounded">Save</button></div></form></div></div>
@@ -229,11 +261,20 @@ const ArticlesEditor: React.FC<{ articles: Article[], onUpdate: (data: Article[]
 // --- About Page Editor ---
 const AboutPageEditor: React.FC<{ data: typeof defaultAboutPageContent, onUpdate: (data: any) => void }> = ({ data, onUpdate }) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onUpdate({ ...data, [e.target.name]: e.target.value });
+    
     const handleListChange = (listName: 'teamMembers' | 'coreValues', index: number, field: string, value: string) => {
         const newList = [...data[listName]];
-        newList[index] = { ...newList[index], [field]: value };
+        (newList[index] as any)[field] = value;
         onUpdate({ ...data, [listName]: newList });
     };
+
+    const handleFileChange = async (listName: 'teamMembers', index: number, field: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const base64 = await fileToBase64(e.target.files[0]);
+            handleListChange(listName, index, field, base64);
+        }
+    };
+    
     const handleAdd = (listName: 'teamMembers' | 'coreValues') => {
         const newItem = listName === 'teamMembers' ? { name: '', title: '', bio: '', imageUrl: '' } : { title: '', description: '' };
         onUpdate({ ...data, [listName]: [...data[listName], newItem] });
@@ -256,7 +297,7 @@ const AboutPageEditor: React.FC<{ data: typeof defaultAboutPageContent, onUpdate
                 <div className="space-y-3">{data.coreValues.map((v, i) => (<div key={i} className="p-2 border rounded bg-white grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
                     <input value={v.title} onChange={e => handleListChange('coreValues', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
                     <textarea value={v.description} onChange={e => handleListChange('coreValues', i, 'description', e.target.value)} placeholder="Description" className="w-full p-1 border rounded md:col-span-2" rows={2} />
-                    <button onClick={() => handleRemove('coreValues', i)} className="text-red-500 text-xs font-bold justify-self-end">Remove</button>
+                    <button type="button" onClick={() => handleRemove('coreValues', i)} className="text-red-500 text-xs font-bold justify-self-end">Remove</button>
                 </div>))}<button onClick={() => handleAdd('coreValues')} className="mt-3 text-sm font-bold text-blue-600">Add Value</button>
             </fieldset>
             <fieldset className="p-4 border rounded-lg"><legend className="font-semibold px-2">Team Members</legend>
@@ -265,9 +306,9 @@ const AboutPageEditor: React.FC<{ data: typeof defaultAboutPageContent, onUpdate
                          <input value={m.name} onChange={e => handleListChange('teamMembers', i, 'name', e.target.value)} placeholder="Name" className="w-full p-1 border rounded" />
                          <input value={m.title} onChange={e => handleListChange('teamMembers', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
                     </div>
-                    <input value={m.imageUrl} onChange={e => handleListChange('teamMembers', i, 'imageUrl', e.target.value)} placeholder="Image URL" className="w-full p-1 border rounded" />
+                    <div><label className="text-xs font-semibold">Photo</label><input type="file" accept="image/*" onChange={e => handleFileChange('teamMembers', i, 'imageUrl', e)} className="w-full p-1 border rounded text-sm"/>{m.imageUrl && <img src={m.imageUrl} alt="Preview" className="h-16 w-16 rounded-full object-cover mt-2"/>}</div>
                     <textarea value={m.bio} onChange={e => handleListChange('teamMembers', i, 'bio', e.target.value)} placeholder="Bio" className="w-full p-1 border rounded" rows={2} />
-                    <button onClick={() => handleRemove('teamMembers', i)} className="text-red-500 text-xs font-bold">Remove Member</button>
+                    <button type="button" onClick={() => handleRemove('teamMembers', i)} className="text-red-500 text-xs font-bold">Remove Member</button>
                 </div>))}<button onClick={() => handleAdd('teamMembers')} className="mt-3 text-sm font-bold text-blue-600">Add Member</button>
             </fieldset>
         </div>
@@ -285,13 +326,20 @@ const MirevaPageEditor: React.FC<{ data: typeof defaultMirevaPageContent, onUpda
         current[keys[keys.length - 1]] = value;
         onUpdate(newData);
     };
+
+    const handleFileChange = async (path: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const base64 = await fileToBase64(e.target.files[0]);
+            handleNestedChange(path, base64);
+        }
+    };
+
     return ( <div className="space-y-6"><h3 className="text-lg font-bold">Mireva Page</h3>
         <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Hero</legend>
             <div><label>Title</label><input value={data.hero.title} onChange={e => handleNestedChange('hero.title', e.target.value)} className="w-full p-1 border rounded"/></div>
             <div><label>Subtitle</label><input value={data.hero.subtitle} onChange={e => handleNestedChange('hero.subtitle', e.target.value)} className="w-full p-1 border rounded"/></div>
-            <div><label>Image URL</label><input value={data.hero.imageUrl} onChange={e => handleNestedChange('hero.imageUrl', e.target.value)} className="w-full p-1 border rounded"/></div>
+            <div><label>Image</label><input type="file" accept="image/*" onChange={e => handleFileChange('hero.imageUrl', e)} className="w-full p-1 border rounded text-sm"/>{data.hero.imageUrl && <img src={data.hero.imageUrl} alt="Preview" className="h-24 mt-2 rounded-md"/>}</div>
         </fieldset>
-         {/* Simple list editor for features */}
         <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Features</legend>
              {data.features.map((feat, i) => (<div key={i} className="p-2 border rounded bg-white space-y-1">
                 <input value={feat.title} onChange={e => handleNestedChange(`features.${i}.title`, e.target.value)} placeholder="Title" className="w-full p-1 border rounded font-semibold"/>
@@ -311,11 +359,20 @@ const PlusMembershipPageEditor: React.FC<{ data: typeof defaultPlusMembershipPag
         current[keys[keys.length - 1]] = value;
         onUpdate(newData);
     };
-     const availableIcons = ["TruckIcon", "PhoneIcon", "ShieldCheckIcon", "ClipboardCheckIcon"];
+    
+    const handleFileChange = async (path: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            handleChange(path, await fileToBase64(e.target.files[0]));
+        }
+    };
+
+    const availableIcons = ["TruckIcon", "PhoneIcon", "ShieldCheckIcon", "ClipboardCheckIcon"];
+    
     return (<div className="space-y-6"><h3 className="text-lg font-bold">Platinum Cluster Page</h3>
         <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Hero</legend>
              <div><label>Title</label><input value={data.hero.title} onChange={e => handleChange('hero.title', e.target.value)} className="w-full p-1 border rounded"/></div>
              <div><label>Subtitle</label><input value={data.hero.subtitle} onChange={e => handleChange('hero.subtitle', e.target.value)} className="w-full p-1 border rounded"/></div>
+             <div><label>Hero Image</label><input type="file" accept="image/*" onChange={e => handleFileChange('hero.imageUrl', e)} className="w-full p-1 border rounded text-sm"/>{data.hero.imageUrl && <img src={data.hero.imageUrl} alt="Preview" className="h-24 mt-2 rounded-md"/>}</div>
         </fieldset>
         <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Benefits</legend>
              {data.benefits.map((b, i) => (<div key={i} className="p-2 border rounded bg-white space-y-1">
@@ -326,8 +383,17 @@ const PlusMembershipPageEditor: React.FC<{ data: typeof defaultPlusMembershipPag
                 <textarea value={b.description} onChange={e => handleChange(`benefits.${i}.description`, e.target.value)} placeholder="Description" className="w-full p-1 border rounded" rows={2}/>
              </div>))}
         </fieldset>
+        <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Partner Logos</legend>
+            {data.partners.logos.map((logo, i) => (
+                <div key={i} className="p-2 border rounded bg-white flex items-center gap-4">
+                    <img src={logo.url} alt="Logo" className="h-12 w-24 object-contain bg-gray-100 p-1 rounded" />
+                    <div className="flex-grow space-y-1"><input value={logo.name} onChange={e => handleChange(`partners.logos.${i}.name`, e.target.value)} className="w-full p-1 border rounded"/><input type="file" accept="image/*" onChange={e => handleFileChange(`partners.logos.${i}.url`, e)} className="w-full text-xs"/></div>
+                </div>
+            ))}
+        </fieldset>
     </div>);
 };
+
 
 // --- Offers Page Editor ---
 const OffersPageEditor: React.FC<{ data: typeof defaultOffersPageContent, onUpdate: (path: string, value: string) => void }> = ({ data, onUpdate }) => {
