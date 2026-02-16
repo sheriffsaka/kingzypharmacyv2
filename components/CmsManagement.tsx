@@ -29,7 +29,7 @@ const defaultMirevaPageContent = {
         { title: "Digital Results Hub", description: "Access your reports securely through our online portal or get them delivered via WhatsApp/Email." },
     ],
     testTypes: [
-        { title: "Comprehensive Wellness", tests: ["Full Blood Count (FBC)", "Lipid Profile", "Kidney Function Test", "Liver Function Test"], icon: "🔬", color: "bg-blue-50 text-blue-700" },
+        { title: "Comprehensive Wellness", tests: ["Liver Function", "Kidney Function", "Lipid Profile", "Uric acid"], icon: "🔬", color: "bg-blue-50 text-blue-700" },
         { title: "Specialized Screening", tests: ["HBA1C (Diabetes)", "Thyroid Profile (T3, T4, TSH)", "Tumor Markers", "Hormonal Assay"], icon: "🧪", color: "bg-purple-50 text-purple-700" },
         { title: "Infection & Immunity", tests: ["Malaria Parasite", "Typhoid (Widal)", "COVID-19 PCR/Rapid", "Hepatitis Screening"], icon: "🛡️", color: "bg-green-50 text-green-700" },
         { title: "Molecular & DNA", tests: ["Paternity Testing", "Genotype (Hemoglobin)", "Viral Load Testing", "Allergy Panels"], icon: "🧬", color: "bg-indigo-50 text-indigo-700" }
@@ -318,7 +318,7 @@ const AboutPageEditor: React.FC<{ data: typeof defaultAboutPageContent, onUpdate
 
 // --- Mireva Page Editor ---
 const MirevaPageEditor: React.FC<{ data: typeof defaultMirevaPageContent, onUpdate: (data: any) => void }> = ({ data, onUpdate }) => {
-    const handleNestedChange = (path: string, value: string) => {
+    const handleNestedChange = (path: string, value: any) => {
         const keys = path.split('.');
         const newData = JSON.parse(JSON.stringify(data));
         let current = newData;
@@ -334,6 +334,23 @@ const MirevaPageEditor: React.FC<{ data: typeof defaultMirevaPageContent, onUpda
         }
     };
 
+    const handleTestsChange = (index: number, value: string) => {
+        const testsArray = value.split('\n').filter(t => t.trim() !== '');
+        handleNestedChange(`testTypes.${index}.tests`, testsArray);
+    };
+
+    const handleAddCategory = () => {
+        const newCategory = { title: "New Category", tests: ["New Test 1", "New Test 2"], icon: "🔬", color: "bg-gray-50 text-gray-700" };
+        onUpdate({ ...data, testTypes: [...data.testTypes, newCategory] });
+    };
+
+    const handleRemoveCategory = (index: number) => {
+        if (window.confirm("Are you sure you want to remove this test category?")) {
+            const newTestTypes = data.testTypes.filter((_, i) => i !== index);
+            onUpdate({ ...data, testTypes: newTestTypes });
+        }
+    };
+
     return ( <div className="space-y-6"><h3 className="text-lg font-bold">Mireva Page</h3>
         <fieldset className="p-4 border rounded space-y-2"><legend className="font-semibold px-2">Hero</legend>
             <div><label>Title</label><input value={data.hero.title} onChange={e => handleNestedChange('hero.title', e.target.value)} className="w-full p-1 border rounded"/></div>
@@ -345,6 +362,18 @@ const MirevaPageEditor: React.FC<{ data: typeof defaultMirevaPageContent, onUpda
                 <input value={feat.title} onChange={e => handleNestedChange(`features.${i}.title`, e.target.value)} placeholder="Title" className="w-full p-1 border rounded font-semibold"/>
                 <textarea value={feat.description} onChange={e => handleNestedChange(`features.${i}.description`, e.target.value)} placeholder="Description" className="w-full p-1 border rounded" rows={2}/>
              </div>))}
+        </fieldset>
+        <fieldset className="p-4 border rounded-lg"><legend className="font-semibold px-2">Laboratory Test Categories</legend>
+            <div className="space-y-4">
+                {data.testTypes.map((category, index) => (
+                    <div key={index} className="p-3 border rounded bg-white space-y-2">
+                        <div><label className="text-sm font-semibold">Category Title</label><input value={category.title} onChange={e => handleNestedChange(`testTypes.${index}.title`, e.target.value)} className="w-full p-1 border rounded font-semibold"/></div>
+                        <div><label className="text-sm font-semibold">Tests (one per line)</label><textarea value={category.tests.join('\n')} onChange={e => handleTestsChange(index, e.target.value)} className="w-full p-1 border rounded" rows={4} placeholder="Enter one test per line"/></div>
+                        <button type="button" onClick={() => handleRemoveCategory(index)} className="text-red-500 text-xs font-bold hover:underline">Remove Category</button>
+                    </div>
+                ))}
+            </div>
+            <button type="button" onClick={handleAddCategory} className="mt-4 text-sm font-bold text-blue-600 hover:underline">Add Test Category</button>
         </fieldset>
     </div> );
 };
