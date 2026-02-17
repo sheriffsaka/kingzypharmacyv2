@@ -8,7 +8,7 @@ const defaultContent = {
   mission: "Providing accessible and reliable health solutions using smart technology in a placid environment and in collaboration with our purpose-driven staff.",
   vision: "To be a distinguished leader in premium health solutions around the globe, recognized for our commitment to authenticity and innovation.",
   teamMembers: [
-    { name: 'Dr. Kingsley Emeka (CEO)', title: 'Founder & Chief Pharmacist', bio: 'With over 20 years of experience in the pharmaceutical industry, Dr. Okoro founded Kingzy Pharma to make healthcare accessible to all Nigerians.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769975052/kngzyceo_jc7dpl.jpg' },
+    { name: 'Pharm. Kingsley O. Amagba GF.', title: 'Founder /MD/ CEO', bio: 'He is a seasoned professional who has broken several barriers to get to the echelon of the Pharmaceutical industry. He has contributed to the development of Pharmaceutical Society of Nigeria (PSN) at both state and National level and he is a recipient of several awards in both Pharmaceutical profession and other professional bodies.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769975052/kngzyceo_jc7dpl.jpg' },
     { name: 'Tunde Adebayo', title: 'Head of Operations', bio: 'Tunde is a logistics expert who ensures that your orders are processed efficiently and delivered on time, every time.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541476/guy1_w46lys.jpg' },
     { name: 'Chiamaka Nwosu', title: 'Lead Technologist', bio: 'Chiamaka leads the tech team, building the innovative platform that powers Kingzy Pharma with a focus on user experience.', imageUrl: 'https://res.cloudinary.com/dzbibbld6/image/upload/v1769541475/lady2_qfoh5b.jpg' }
   ],
