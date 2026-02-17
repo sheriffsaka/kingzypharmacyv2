@@ -294,22 +294,28 @@ const AboutPageEditor: React.FC<{ data: typeof defaultAboutPageContent, onUpdate
                 <div><label className="text-sm font-bold">Vision</label><textarea name="vision" value={data.vision} onChange={handleChange} className="w-full p-2 border rounded" rows={3} /></div>
             </fieldset>
             <fieldset className="p-4 border rounded-lg"><legend className="font-semibold px-2">Core Values</legend>
-                <div className="space-y-3">{data.coreValues.map((v, i) => (<div key={i} className="p-2 border rounded bg-white grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-                    <input value={v.title} onChange={e => handleListChange('coreValues', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
-                    <textarea value={v.description} onChange={e => handleListChange('coreValues', i, 'description', e.target.value)} placeholder="Description" className="w-full p-1 border rounded md:col-span-2" rows={2} />
-                    <button type="button" onClick={() => handleRemove('coreValues', i)} className="text-red-500 text-xs font-bold justify-self-end">Remove</button>
-                </div>))}<button onClick={() => handleAdd('coreValues')} className="mt-3 text-sm font-bold text-blue-600">Add Value</button>
+                <div className="space-y-3">
+                    {data.coreValues.map((v, i) => (<div key={i} className="p-2 border rounded bg-white grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+                        <input value={v.title} onChange={e => handleListChange('coreValues', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
+                        <textarea value={v.description} onChange={e => handleListChange('coreValues', i, 'description', e.target.value)} placeholder="Description" className="w-full p-1 border rounded md:col-span-2" rows={2} />
+                        <button type="button" onClick={() => handleRemove('coreValues', i)} className="text-red-500 text-xs font-bold justify-self-end">Remove</button>
+                    </div>))}
+                </div>
+                <button onClick={() => handleAdd('coreValues')} className="mt-3 text-sm font-bold text-blue-600">Add Value</button>
             </fieldset>
             <fieldset className="p-4 border rounded-lg"><legend className="font-semibold px-2">Team Members</legend>
-                <div className="space-y-3">{data.teamMembers.map((m, i) => (<div key={i} className="p-2 border rounded bg-white space-y-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                         <input value={m.name} onChange={e => handleListChange('teamMembers', i, 'name', e.target.value)} placeholder="Name" className="w-full p-1 border rounded" />
-                         <input value={m.title} onChange={e => handleListChange('teamMembers', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
-                    </div>
-                    <div><label className="text-xs font-semibold">Photo</label><input type="file" accept="image/*" onChange={e => handleFileChange('teamMembers', i, 'imageUrl', e)} className="w-full p-1 border rounded text-sm"/>{m.imageUrl && <img src={m.imageUrl} alt="Preview" className="h-16 w-16 rounded-full object-cover mt-2"/>}</div>
-                    <textarea value={m.bio} onChange={e => handleListChange('teamMembers', i, 'bio', e.target.value)} placeholder="Bio" className="w-full p-1 border rounded" rows={2} />
-                    <button type="button" onClick={() => handleRemove('teamMembers', i)} className="text-red-500 text-xs font-bold">Remove Member</button>
-                </div>))}<button onClick={() => handleAdd('teamMembers')} className="mt-3 text-sm font-bold text-blue-600">Add Member</button>
+                <div className="space-y-3">
+                    {data.teamMembers.map((m, i) => (<div key={i} className="p-2 border rounded bg-white space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input value={m.name} onChange={e => handleListChange('teamMembers', i, 'name', e.target.value)} placeholder="Name" className="w-full p-1 border rounded" />
+                            <input value={m.title} onChange={e => handleListChange('teamMembers', i, 'title', e.target.value)} placeholder="Title" className="w-full p-1 border rounded" />
+                        </div>
+                        <div><label className="text-xs font-semibold">Photo</label><input type="file" accept="image/*" onChange={e => handleFileChange('teamMembers', i, 'imageUrl', e)} className="w-full p-1 border rounded text-sm"/>{m.imageUrl && <img src={m.imageUrl} alt="Preview" className="h-16 w-16 rounded-full object-cover mt-2"/>}</div>
+                        <textarea value={m.bio} onChange={e => handleListChange('teamMembers', i, 'bio', e.target.value)} placeholder="Bio" className="w-full p-1 border rounded" rows={2} />
+                        <button type="button" onClick={() => handleRemove('teamMembers', i)} className="text-red-500 text-xs font-bold">Remove Member</button>
+                    </div>))}
+                </div>
+                <button onClick={() => handleAdd('teamMembers')} className="mt-3 text-sm font-bold text-blue-600">Add Member</button>
             </fieldset>
         </div>
     );
